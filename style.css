@@ -4,7 +4,6 @@
         margin: 0 !important;   /*Garante que não haja margem externa */
         padding: 0 !important;  /* Garante que não haja padding externo */
         overflow-x: hidden !important; /* Super-garantia contra rolagem horizontal */
-        /* ALTERADO 30/07 */
         scroll-padding-top: 104px !important;
     }
 
@@ -34,7 +33,7 @@
         padding-top: 60px; /*  Altura do seu cabeçalho fixo  */
         overflow-x: hidden !important;/*  Previne rolagem horizontal */
         -ms-overflow-style: none;
-        padding-top: 70px; /* 05/08 AJUSTADO: Para corresponder à altura padrão do cabeçalho */
+        padding-top: 70px; /* Para corresponder à altura padrão do cabeçalho */
     }
 
     .intro-page {
@@ -42,7 +41,7 @@
         border-radius: 15px; /* Cantos arredondados para um visual mais suave */
     }
 
-    /* Já definimos mb-4 para a logo, mas podemos adicionar mais para o h1  - título "Descubra seu estilo!"*/
+    /* Definido mb-4 para a logo, adicionado mais para o h1  - título "Descubra seu estilo!"*/
     .intro-page h1 {
         margin-bottom: 1.5rem !important; /*  Mais espaço abaixo do título principal */
         font-weight: 800; /* Mais impactante, se houver o peso na fonte */
@@ -67,7 +66,7 @@
         line-height: 1.5;
     }
 
-    /* Para o corpo do texto (a carta em si) */
+    /* Para o corpo do texto */
     .intro-page .card-text {
         font-size: 1rem; /* Tamanho padrão para legibilidade (16px) */
         line-height: 1.8; /*  Aumenta o espaçamento entre linhas */
@@ -99,7 +98,7 @@
         transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         padding: 0 !important;
-        min-height: 350px !important; /* Define uma altura mínima para o contêiner da imagem. Ajuste este valor se 200px for muito pequeno ou muito grande, visando um equilíbrio visual. */
+        min-height: 350px !important; /* Define uma altura mínima para o contêiner da imagem. Visando um equilíbrio visual. */
         display: flex; /* Ativa o flexbox para centralizar a imagem */
         justify-content: center; /* Centraliza horizontalmente o item flex (a imagem) */
         align-items: center; /* Centraliza verticalmente o item flex (a imagem) */        
@@ -134,7 +133,7 @@
         display: block;
     }
 
-    .navigation-buttons button.btn-primary { /* Assumindo que este é o botão "Próximo" */
+    .navigation-buttons button.btn-primary { /* Botão "Próximo" */
         min-width: 200px; /*  Largura mínima para o botão */
         padding: 15px 30px !important; /* Padding maior para um botão mais "clicável" */
         font-size: 1.2rem !important; /*  Fonte maior para melhor leitura */
@@ -142,49 +141,45 @@
         font-weight: 600; /*  Fonte semi-bold */
     }
 
-    /* Alterada em 04/08 desta ==>  .navigation-buttons { margin-top: 30px; text-align: center; } para esta...*/
     .navigation-buttons { 
         margin-top: 30px; 
         display: flex; /* Flexbox para alinhar os botões */
         align-items: stretch; /* Garante que todos os botões tenham a mesma altura */
-        justify-content: space-between; /* 05/08 ALTERADO: Alinha "Voltar" à esquerda e "Próxima Pergunta" à direita, o que condiz com o HTML d-flex justify-content-between */
-        gap: 8px; /* Espaçamento entre os botões - 05/08 AJUSTADO: Reduz o espaçamento entre os botões para telas menores, se necessário */
+        justify-content: space-between; /* Alinha "Voltar" à esquerda e "Próxima Pergunta" à direita, o que condiz com o HTML d-flex justify-content-between */
+        gap: 8px; /* Espaçamento entre os botões: Reduz o espaçamento entre os botões para telas menores, se necessário */
         flex-wrap: nowrap !important; /* REAFIRMADO: Garante que NUNCA quebrem para a linha de baixo */
         text-align: center; /* Garante que o texto dentro dos botões fique centralizado */
-        padding: 0 5px; /* 05/08 NOVO: Adiciona um pequeno padding nas laterais do contêiner para não colar nas bordas da tela */
+        padding: 0 5px; /* Adiciona um pequeno padding nas laterais do contêiner para não colar nas bordas da tela */
     }
-    /* Incluida em 05/08 */
+     
     .navigation-buttons .btn-voltar {
-        /*min-width: 140px;  REMOVIDO EM 05/08*/
         padding: 10px 20px;
         font-size: 1rem;
-        background-color: #ccc; /* Opcional: cor diferenciada */
+        background-color: #ccc; /* Cor diferenciada */
         font-weight: 500;
     }
 
     .navigation-buttons .btn-primary {
-        /* min-width: 200px; REMOVIDO EM 05/08*/
         padding: 15px 30px;
         font-size: 1.2rem;
         font-weight: 600;
         border-radius: 8px;
     }
 
-    /* Alterada em 05/08 desta ==>  .navigation-buttons button { margin: 0 10px; } para esta...*/
     .navigation-buttons button {
         /* cada botão ocupa até 45% do container, encolhe se precisar */
-        flex: 1 1 0; /* 05/08 - MUITO IMPORTANTE: Permite que o botão encolha ao máximo necessário (base 0), mas também cresça */
-        white-space: nowrap !important; /* 05/08 - GARANTIDO: O texto NUNCA quebra em múltiplas linhas */
-        overflow: hidden; /* 05/08 NOVO: Esconde qualquer texto que não caiba após encolher */
-        text-overflow: ellipsis; /* 05/08 NOVO: Adiciona '...' se o texto for cortado (feedback visual) */
+        flex: 1 1 0; /* Permite que o botão encolha ao máximo necessário (base 0), mas também cresça */
+        white-space: nowrap !important; /* O texto NUNCA quebra em múltiplas linhas */
+        overflow: hidden; /* Esconde qualquer texto que não caiba após encolher */
+        text-overflow: ellipsis; /* Adiciona '...' se o texto for cortado (feedback visual) */
         display: flex; /* mantém a mesma altura */
         align-items: center;
         justify-content: center;
         /* Ajustes de texto e padding mantidos */
-        font-size: clamp(0.7rem, 2.8vw, 1rem) !important; /* 05/08 ALTERADO: Aumenta o tamanho mínimo da fonte para melhorar a legibilidade em telas pequenas. */
-        padding: clamp(10px, 2.5vw, 15px) clamp(10px, 3.5vw, 25px) !important; /* 05/08 ALTERADO: Aumenta o padding mínimo para dar mais respiro ao texto e visualmente mais "corpo" aos botões. */
+        font-size: clamp(0.7rem, 2.8vw, 1rem) !important; /* Aumenta o tamanho mínimo da fonte para melhorar a legibilidade em telas pequenas. */
+        padding: clamp(10px, 2.5vw, 15px) clamp(10px, 3.5vw, 25px) !important; /* Aumenta o padding mínimo para dar mais respiro ao texto e visualmente mais "corpo" aos botões. */
         box-sizing: border-box; /* Garante que padding e border não aumentem a largura total */
-        transition: all 0.2s ease-in-out; /* NOVO: Adiciona uma transição suave para os redimensionamentos */
+        transition: all 0.2s ease-in-out; /* Adiciona uma transição suave para os redimensionamentos */
     }
 
     #final-resultado {
@@ -193,15 +188,14 @@
         transform: translateY(30px);
         transition: opacity 0.8s ease, transform 0.8s ease;
         padding: 70px;
-        max-width: 360px;      /* se quiser um limite maior */
-        margin: 0 auto 20px;        /* mantém centralizado */
+        max-width: 360px;      
+        margin: 0 auto 20px;  /* mantém centralizado */
         border-radius: 20px;
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         text-align: left;
         margin-top: 50px;
         line-height: 1.4;
-        /* ALTERADO 30/07 */
         scroll-margin-top: 104px !important;   /* igual ao header+padding */
         padding-bottom: 160px !important;     /* espaço extra abaixo do card */
     }
@@ -337,12 +331,12 @@
         object-fit: contain; /* Garante que a imagem inteira seja visível dentro do espaço, mantendo proporção. */
     }
 
-    /* NOVO BLOCO: REATIVAR display: grid PARA FASES QUE CONTÊM IMAGENS */
+    /* REATIVAR display: grid PARA FASES QUE CONTÊM IMAGENS */
     /* Esta regra tem mais especificidade e será aplicada APENAS se houver uma imagem no contêiner */
     .row.justify-content-center.phase-1:has(.quiz-img) {
         display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important; /* Layout para Fase 1 com imagens */
-        grid-template-rows: auto auto auto !important; /* ALTERADO 30/07 */
+        grid-template-rows: auto auto auto !important; 
         gap: 0.2cm 0.2cm !important;
         justify-items: center; 
     }
@@ -361,7 +355,7 @@
     .row.justify-content-center.phase-2:has(.quiz-img) > div[class*="col-"],
 
     .row.justify-content-center.phase-3:has(.quiz-img) > div[class*="col-"] {
-        width: 100%; /* Garante que a imagem ocupe 100% da largura do seu contêiner */
+        width: 100%; /* Garante que a imagem ocupe 100% da largura do contêiner */
         height: auto; /* IMPORTANTE: Mantém a proporção da imagem automaticamente */
         max-width: none !important;
         flex-basis: auto !important;
@@ -389,7 +383,7 @@
         padding: 15px 25px !important; /* Aumenta o padding para melhor leitura */
         font-size: 1rem !important;    /* Ajusta o tamanho da fonte para boa legibilidade */
         white-space: normal !important; /* Deixe como 'normal' ou 'unset' aqui, pois o 'nowrap' é mais específico abaixo */
-        word-break: normal !important; /* ALTERADO: ESSA É A LINHA QUE IMPEDIA SEU 'white-space: nowrap' DE FUNCIONAR! */
+        word-break: normal !important; 
         max-width: 400px; /* Opcional: Limita a largura máxima do botão para não ficar absurdamente largo em telas grandes */
         margin: auto !important; /* Centraliza o botão dentro da coluna se ele tiver max-width */
     }
@@ -402,12 +396,10 @@
         margin-bottom: 0 !important;
     }    
     
-    /* ALTERADO 30/07 */
     .pergunta-container {
         /* margem “invisível” antes de colar no topo */
         scroll-margin-top: 104px !important;
     }
-
 
     /* Remove bottom margin applied by mb classes */
     .row.justify-content-center .mb-1, 
@@ -471,26 +463,26 @@
         top: 0;          /* Alinha ao topo da janela do navegador */
         left: 0;         /* Alinha à esquerda da janela do navegador */
         width: 100%;
-        max-width: none;/* <— largura máxima que você desejar - TELA TODA */
-        right: 0;        /* <<< ADICIONAR ESTA LINHA: Garante que o cabeçalho se estenda até a borda direita */
-        margin: 0 auto;  /* <— centraliza no mobile/desktop */
+        max-width: none;/* Largura máxima desejada - TELA TODA */
+        right: 0;        /* Garante que o cabeçalho se estenda até a borda direita */
+        margin: 0 auto;  /* Centraliza no mobile/desktop */
         background-color: var(--brand-neutral-light); /* Cor de fundo (bege da marca) */
-        padding: 0 20px !important; /* REMOVE TUDO INDO DE PONTA A PONTA, ERA ASSIM... padding: 0px 10px; /* Espaçamento interno: 10px em cima/baixo, 20px nas laterais */
-        box-shadow: none !important; /* Para testar se a sombra é o problema */
-        border: none !important;     /* Para testar se alguma borda invisível é o problema */
+        padding: 0 20px !important; /* Espaçamento interno: 10px em cima/baixo, 20px nas laterais */
+        box-shadow: none !important; 
+        border: none !important;     
         z-index: 1000;   /* Garante que o cabeçalho fique acima de outros elementos na página */
         display: flex;   /* Para alinhar a logo dentro dele */
         justify-content: center; /* Centraliza a logo horizontalmente no cabeçalho */
         align-items: center; /* Centraliza a logo verticalmente */
         height: 70px; /* MENOR desde o início*/
-        overflow: hidden; /* NOVO: Garante que nada transborde do cabeçalho caso a logo seja muito grande */
+        overflow: hidden; /* Garante que nada transborde do cabeçalho caso a logo seja muito grande */
     }   
     
     .sticky-header .logo-link img {
-        width: 100%; /* era auto*/
-        max-width: 100%; /*a imagem não excede 100% da largura do container*/
+        width: 100%; 
+        max-width: 100%; /* A imagem não excede 100% da largura do container*/
         height: auto;
-        max-height: 45px; /* 05/08 AJUSTADO: Limita a altura da logo para caber no cabeçalho de 70px (deixando 5px de padding top/bottom invisível) */
+        max-height: 45px; /* Limita a altura da logo para caber no cabeçalho de 70px (deixando 5px de padding top/bottom invisível) */
         display: block;
         margin: 0 auto;
         background-color: transparent !important;
@@ -531,8 +523,8 @@
         }
 
         .sticky-header {
-            padding: 0 !important; /*  ALTERADO 05/08: Remove todo o padding para mobile também */
-            height: 80px;  /* AJUSTADO: Reduz um pouco a altura do cabeçalho para mobile, para dar mais espaço ao conteúdo */
+            padding: 0 !important; /*  Remove todo o padding para mobile também */
+            height: 80px;  /* Reduz um pouco a altura do cabeçalho para mobile, para dar mais espaço ao conteúdo */
         }
         
         h3, h4, .lead {
@@ -566,16 +558,10 @@
         }
         
         .sticky-header .logo-link img {
-            height: auto; /* 05/08 Mantém auto para proporção */
-            max-width: 100%; /*05/08  GARANTIDO: Preenche 100% da largura em mobile */
-            max-height: 35px; /* 05/08 ALTERADO: A logo agora será menor no mobile (35px) do que no desktop (45px) */
-            /* height: 120px; 
-             max-width: 200px; /* Ajusta o tamanho da logo no mobile para ser mais adequada */
+            height: auto; /* Mantém auto para proporção */
+            max-width: 100%; /* Preenche 100% da largura em mobile */
+            max-height: 35px; /* A logo agora será menor no mobile (35px) do que no desktop (45px) */
         }
-        
-        /*body {
-            padding-top: 80px !important; /* 05/08 AJUSTADO: Para corresponder à nova altura do cabeçalho em mobile (80px) 
-        }*/
 
         .intro-page h1 {
             font-size: 1.3rem; /* Ainda menor para tablets */
@@ -593,7 +579,6 @@
             padding-left: 5px !important;   /* Mantém o padding horizontal */
             padding-right: 5px !important;  /* Mantém o padding horizontal */
             padding-bottom: 8px !important; /* Mantém o padding inferior */
-        /* O padding-top é controlado pela regra mais específica do @media (max-width: 768px) ou pela geral, garantindo que o cabeçalho fixo não esconda o conteúdo. */
         }
 
         #final-resultado {
@@ -612,13 +597,12 @@
         padding: 0.5rem 1rem;
     }  
 
-    /* Adicionado 04/08 - esconde a logo ao rolar a tela */ 
+    /* Esconde a logo ao rolar a tela */ 
     .sticky-header.hidden {
         transform: translateY(-100%);
         transition: transform 0.3s ease-in-out;
     }
 
-    /* Adicionado 05/08 - AJUSTE NO BOTÃO VOLTAR */
     /* Botão voltar com estilo diferenciado */
     .navigation-buttons .btn-voltar {
         min-width: 120px;
@@ -641,7 +625,7 @@
         }
     }
 
-    /* 05/08 NOVO BLOCO: Consolidação do padding-top do body */
+    /* Consolidação do padding-top do body */
     body {
         padding-top: 70px !important; /* Padrão para desktop e telas maiores (altura do sticky-header) */
     }
