@@ -255,8 +255,13 @@
         }
 
         if (perguntaDiv) { // Certifica-se de que a perguntaDiv existe
-            perguntaDiv.scrollIntoView({ block: "start", behavior: "smooth" });
+            // Delay curto para garantir que o evento de click / foco finalize antes do scroll.
+            // Isso evita que o botão seja "desselecionado" pelo navegador enquanto ocorre o clique.
+            setTimeout(() => {
+                perguntaDiv.scrollIntoView({ block: "start", behavior: "smooth" });
+            }, 80);
         }
+
     }
 
     function handleAnswerSelection(questionNumber, selectedStyle, selectedOptionLabel) {
@@ -480,7 +485,11 @@
         finalDiv.style.display = 'block';
         finalDiv.classList.add('show');
         
-        finalDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Delay curto para evitar conflitos com qualquer transição/fechamento de modal
+        setTimeout(() => {
+            finalDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+
 
         // liga o botão ao gerador de print/PDF
         const pdfBtn = document.getElementById('btn-download-pdf');
