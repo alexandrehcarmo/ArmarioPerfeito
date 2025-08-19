@@ -1,0 +1,29 @@
+# Ignorar arquivos do Word
+*.docx
+
+# Ignorar arquivos de texto temporários ou rascunhos
+*.txt
+
+# Ignorar arquivos ZIP
+*.zip
+
+# Ignorar pastas internas não relacionadas ao projeto final
+Antigos/
+Docs_Marina/
+MODULARIZADO/
+Codigos.docx
+Poppins/
+Nao_Usadas/
+BackUp/
+
+# Evita backups ou versões antigas
+index_OFICIAL.html
+index_v10.07.html
+indexhtml.txt
+
+# Ignorar arquivos do OneDrive, caso existam
+*.lnk
+~$*
+
+# Ignorar configurações locais do VS Code (opcional)
+.vscode/

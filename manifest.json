@@ -1,0 +1,20 @@
+{
+  "name": "Calculadora de Estilo",
+  "short_name": "EstiloApp",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6f42c1",
+  "icons": [
+    {
+      "src": "imagens/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "imagens/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
