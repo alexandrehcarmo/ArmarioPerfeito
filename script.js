@@ -5,7 +5,7 @@
     let perguntaAtualIndice = -1;
     let faseAtual = 1;
     const totalPerguntas = 35;
-    const todosOsEstilos = ["clássica", "tradicional", "dramática", "romântica", "sexy", "criativa", "básica"];
+    const todosOsEstilos = ["clássica", "tradicional", "dramática", "romântica", "sensual (sexy)", "criativa", "básica"];
     const labelsOpcoes = ["A", "B", "C", "D", "E", "F", "G"];
     let todasAsPerguntas = [];
     let phaseResultModal;
@@ -19,7 +19,7 @@
 
     // Mapeamentos
     const imagemRanges = { 15: [3, 9], 16: [11, 17], 17: [19, 25], 18: [27, 33], 19: [35, 41], 20: [43, 49], 21: [51, 57], 22: [59, 65], 23: [67, 73], 24: [75, 81], 25: [83, 89], 26: [91, 97], 27: [99, 105], 28: [107, 113], 29: [115, 121], 30: [123, 129], 31: [131, 137], 32: [139, 145], 33: [147, 153], 34: [155, 161], 35: [163, 169] };
-    const detalhesEstiloMapCompleto = { "clássica": "Você é elegante, refinada e feminina, prezando por acabamentos impecáveis e atemporalidade. Seu estilo é sofisticado, discreto, e você gosta de se enfeitar, encontrando prazer em combinar peças clássicas com detalhes que revelam uma sofisticação natural.", "tradicional": "Você é elegante, refinada e prática, valorizando a funcionalidade acima de tudo. Gosta de estar bem vestida com peças atemporais, clássicas e sóbrias, sem precisar dedicar muito tempo a isso. Discrição e eficiência são a sua marca.", "dramática": "Você é elegante, moderna e poderosa, buscando impacto sem dizer uma palavra. Adora misturar elementos diferentes para criar contrapontos, com roupas clássicas que possuem toques modernos, cores e elementos marcantes, sempre em busca de um visual interessante e contemporâneo.", "romântica": "Você é elegante, feminina e delicada, expressando leveza através das suas roupas. Prefere elementos femininos, como laços, pérolas e mangas bufantes, e se veste para realçar sua feminilidade de forma fofa e encantadora.", "sexy": "Você é elegante, feminina e atraente, buscando se sentir poderosa e desejada. Suas roupas e acessórios valorizam seu corpo de forma elegante e magnética, mostrando o suficiente para ser atraente sem ser vulgar.", "criativa": "Você é elegante, moderna e fashionista, adorando ousar e brincar com combinações inusitadas. Acompanha tendências e usa a moda como forma de expressar sua criatividade e personalidade única, sem medo de experimentar e de se destacar.", "básica": "Você é elegante, prática e natural, priorizando o conforto e a discrição. Ama roupas confortáveis, fáceis de combinar e que não chamem muita atenção, evitando formalidade excessiva e prezando por um estilo simples, chique e sem frescura." };
+    const detalhesEstiloMapCompleto = { "clássica": "Você é elegante, refinada e feminina, prezando por acabamentos impecáveis e atemporalidade. Seu estilo é sofisticado, discreto, e você gosta de se enfeitar, encontrando prazer em combinar peças clássicas com detalhes que revelam uma sofisticação natural.", "tradicional": "Você é elegante, refinada e prática, valorizando a funcionalidade acima de tudo. Gosta de estar bem vestida com peças atemporais, clássicas e sóbrias, sem precisar dedicar muito tempo a isso. Discrição e eficiência são a sua marca.", "dramática": "Você é elegante, moderna e poderosa, buscando impacto sem dizer uma palavra. Adora misturar elementos diferentes para criar contrapontos, com roupas clássicas que possuem toques modernos, cores e elementos marcantes, sempre em busca de um visual interessante e contemporâneo.", "romântica": "Você é elegante, feminina e delicada, expressando leveza através das suas roupas. Prefere elementos femininos, como laços, pérolas e mangas bufantes, e se veste para realçar sua feminilidade de forma fofa e encantadora.", "sensual (sexy)": "Você é elegante, feminina e atraente, buscando se sentir poderosa e desejada. Suas roupas e acessórios valorizam seu corpo de forma elegante e magnética, mostrando o suficiente para ser atraente sem ser vulgar.", "criativa": "Você é elegante, moderna e fashionista, adorando ousar e brincar com combinações inusitadas. Acompanha tendências e usa a moda como forma de expressar sua criatividade e personalidade única, sem medo de experimentar e de se destacar.", "básica": "Você é elegante, prática e natural, priorizando o conforto e a discrição. Ama roupas confortáveis, fáceis de combinar e que não chamem muita atenção, evitando formalidade excessiva e prezando por um estilo simples, chique e sem frescura." };
     const ordemDesempate = [15, 21, 29, 33, 34, 35, 32, 31, 28, 25, 20, 19, 18, 17];
 
     // --- Conteúdo das páginas de introdução (Exatamente como no documento original) ---
@@ -657,7 +657,7 @@
                     { label: "B", text: "Elegante, refinada e prática", estilo: "tradicional" },
                     { label: "C", text: "Elegante, moderna e poderosa", estilo: "dramática" },
                     { label: "D", text: "Elegante, feminina e delicada", estilo: "romântica" },
-                    { label: "E", text: "Elegante, feminina e atraente", estilo: "sexy" },
+                    { label: "E", text: "Elegante, feminina e atraente", estilo: "sensual (sexy)" },
                     { label: "F", text: "Elegante, moderna e fashionista", estilo: "criativa" },
                     { label: "G", text: "Elegante, prática e natural", estilo: "básica" }
                 ]
@@ -668,7 +668,7 @@
                     { label: "B", text: `Gosto de sentir que estou sempre bem vestida mas antes, prezo pela funcionalidade.`, estilo: "tradicional" },
                     { label: "C", text: `Gosto de sentir que estou sempre bem vestida mas não gosto de me sentir "clássica demais”.`, estilo: "dramática" },
                     { label: "D", text: `Adoro me sentir feminina e mostrar delicadeza e leveza através das minhas roupas.`, estilo: "romântica" },
-                    { label: "E", text: `Eu quero que minha roupa atraia olhares e mostre que sou uma mulher segura.`, estilo: "sexy" },
+                    { label: "E", text: `Eu quero que minha roupa atraia olhares e mostre que sou uma mulher segura.`, estilo: "sensual (sexy)" },
                     { label: "F", text: `Adoro ser a pessoa mais estilosa do lugar, amo acompanhar tendências!`, estilo: "criativa" },
                     { label: "G", text: `Não gosto de chamar atenção, prefiro estar discreta, isso me deixa mais à vontade.`, estilo: "básica" }
                 ]
@@ -679,7 +679,7 @@
                     { label: "B", text: "Ser prática", estilo: "tradicional" },
                     { label: "C", text: "Ser moderna", estilo: "dramática" },
                     { label: "D", text: "Ser feminina", estilo: "romântica" },
-                    { label: "E", text: "Ser atraente", estilo: "sexy" },
+                    { label: "E", text: "Ser atraente", estilo: "sensual (sexy)" },
                     { label: "F", text: "Ser fashion", estilo: "criativa" },
                     { label: "G", text: "Ser confortável", estilo: "básica" }
                 ]
@@ -690,7 +690,7 @@
                     { label: "B", text: "Um blazer reto, risca de giz marinho", estilo: "tradicional" },
                     { label: "C", text: "Um blazer oversized com ombreiras", estilo: "dramática" },
                     { label: "D", text: "Um casaquinho de tweed rosa", estilo: "romântica" },
-                    { label: "E", text: "Uma casaco de pelos vinho", estilo: "sexy" },
+                    { label: "E", text: "Uma casaco de pelos vinho", estilo: "sensual (sexy)" },
                     { label: "F", text: "Um kimono de veludo bordado com paetês coloridos", estilo: "criativa" },
                     { label: "G", text: "Uma jaqueta de couro preta", estilo: "básica" }
                 ]
@@ -701,7 +701,7 @@
                     { label: "B", text: `“Discrição é o último grau de sofisticação.”`, estilo: "tradicional" },
                     { label: "C", text: `“Amo causar impacto sem dizer uma palavra.”`, estilo: "dramática" },
                     { label: "D", text: `“Me visto para expressar minha feminilidade.”`, estilo: "romântica" },
-                    { label: "E", text: `“Quero me sentir poderosa e desejada.”`, estilo: "sexy" },
+                    { label: "E", text: `“Quero me sentir poderosa e desejada.”`, estilo: "sensual (sexy)" },
                     { label: "F", text: `“Amo brincar com combinações inusitadas.”`, estilo: "criativa" },
                     { label: "G", text: `“Me visto com praticidade e zero frescura.”`, estilo: "básica" }
                 ]
@@ -712,7 +712,7 @@
                     { label: "B", text: `“Você está simples e elegante.”`, estilo: "tradicional" },
                     { label: "C", text: `“Você está moderna e impactante.”`, estilo: "dramática" },
                     { label: "D", text: `“Você está tão delicada e feminina!”`, estilo: "romântica" },
-                    { label: "E", text: `“Você está incrível e irresistível.”`, estilo: "sexy" },
+                    { label: "E", text: `“Você está incrível e irresistível.”`, estilo: "sensual (sexy)" },
                     { label: "F", text: `“Você está diferente de todos e criativa!”`, estilo: "criativa" },
                     { label: "G", text: `“Você parece tão confortável e natural!”`, estilo: "básica" }
                 ]
@@ -723,7 +723,7 @@
                     { label: "B", text: "Uma loja de peças clássicas e confortáveis.", estilo: "tradicional" },
                     { label: "C", text: "Uma loja de peças clássicas misturada com peças de impacto.", estilo: "dramática" },
                     { label: "D", text: "Uma loja de peças leves, com ar delicado e feminino.", estilo: "romântica" },
-                    { label: "E", text: "Uma loja de peças elegantes e sensuais ao mesmo tempo.", estilo: "sexy" },
+                    { label: "E", text: "Uma loja de peças elegantes e sensuais ao mesmo tempo.", estilo: "sensual (sexy)" },
                     { label: "F", text: "Uma loja com tendencias, e todos os tipos de estilo.", estilo: "criativa" },
                     { label: "G", text: "Uma loja com peças básicas, confortáveis, sem modismos.", estilo: "básica" }
                 ]
@@ -734,7 +734,7 @@
                     { label: "B", text: "Acho chato essa coisa da moda ficar mudando, prefiro estar sempre igual, assim não erro e ganho mais tempo.", estilo: "tradicional" },
                     { label: "C", text: "Gosto de algumas tendências, mas sempre misturo com clássicos.", estilo: "dramática" },
                     { label: "D", text: "Gosto de tendências que realçam meu lado feminino de uma forma delicada.", estilo: "romântica" },
-                    { label: "E", text: "Gosto de tendências que realçam meu lado feminino de uma forma mais poderosa.", estilo: "sexy" },
+                    { label: "E", text: "Gosto de tendências que realçam meu lado feminino de uma forma mais poderosa.", estilo: "sensual (sexy)" },
                     { label: "F", text: "Estou sempre testando tudo que é novo, adoro ousar e me divirto fazendo isso.", estilo: "criativa" },
                     { label: "G", text: "Não tenho paciência para acompanhar tendências, gosto de roupas confortáveis e fáceis.", estilo: "básica" }
                 ]
@@ -745,7 +745,7 @@
                     { label: "B", text: "Sentir que a roupa me deixou muito doce.", estilo: "tradicional" },
                     { label: "C", text: "Ficar apagada ou sem destaque.", estilo: "dramática" },
                     { label: "D", text: "Sentir que a roupa endureceu sua imagem.", estilo: "romântica" },
-                    { label: "E", text: "Sentir que a roupa não valoriza seu corpo.", estilo: "sexy" },
+                    { label: "E", text: "Sentir que a roupa não valoriza seu corpo.", estilo: "sensual (sexy)" },
                     { label: "F", text: "Achar que está comum demais", estilo: "criativa" },
                     { label: "G", text: "Sentir que está chamando atenção demais.", estilo: "básica" }
                 ]
@@ -756,7 +756,7 @@
                     { label: "B", text: `“Você é sempre elegante e transmite força!”`, estilo: "tradicional" },
                     { label: "C", text: `“Uau, como você tem presença!”`, estilo: "dramática" },
                     { label: "D", text: `“Que fofa, você está muito linda!”`, estilo: "romântica" },
-                    { label: "E", text: `“Que linda, você tem um magnetismo natural!”`, estilo: "sexy" },
+                    { label: "E", text: `“Que linda, você tem um magnetismo natural!”`, estilo: "sensual (sexy)" },
                     { label: "F", text: `“Você é a mais estilosa!”`, estilo: "criativa" },
                     { label: "G", text: `“Você é natural e chique de uma forma simples.”`, estilo: "básica" }
                 ]
@@ -767,7 +767,7 @@
                     { label: "B", text: `Vai direto na sessão de peças clássicas e cortes mais retos, sem "firula”.`, estilo: "tradicional" },
                     { label: "C", text: `Vai na sessão dos clássicos mas sempre olha as versões mais modernas deles.`, estilo: "dramática" },
                     { label: "D", text: `Vai na sessão de  peças com mais movimento e com ar delicado e feminino.`, estilo: "romântica" },
-                    { label: "E", text: `Vai atrás de peças que tenham sensualidade, que são femininas de um jeito mais poderoso.`, estilo: "sexy" },
+                    { label: "E", text: `Vai atrás de peças que tenham sensualidade, que são femininas de um jeito mais poderoso.`, estilo: "sensual (sexy)" },
                     { label: "F", text: `Vai direto na arara de tendências pra conhecer tudo que saiu de mais recente.`, estilo: "criativa" },
                     { label: "G", text: `Busca peças práticas, confortáveis e que deixam arrumada em precisar de fazer tanto esforço...`, estilo: "básica" }
                 ]
@@ -778,7 +778,7 @@
                     { label: "B", text: "Reservada, racional e eficiente", estilo: "tradicional" },
                     { label: "C", text: "Interessante, contemporânea e poderosa", estilo: "dramática" },
                     { label: "D", text: "Feminina, familiar e cuidadosa", estilo: "romântica" },
-                    { label: "E", text: "Feminina, poderosa e magnética", estilo: "sexy" },
+                    { label: "E", text: "Feminina, poderosa e magnética", estilo: "sensual (sexy)" },
                     { label: "F", text: "Ousada, expansiva e divertida", estilo: "criativa" },
                     { label: "G", text: "Simples, natural e elegante sem nenhum excesso", estilo: "básica" }
                 ]
@@ -789,7 +789,7 @@
                     { label: "B", text: "Um mocassim", estilo: "tradicional" },
                     { label: "C", text: "Uma sandália impactante", estilo: "dramática" },
                     { label: "D", text: "Uma sapatilha", estilo: "romântica" },
-                    { label: "E", text: "Uma sandália de salto agulha e apenas duas tiras", estilo: "sexy" },
+                    { label: "E", text: "Uma sandália de salto agulha e apenas duas tiras", estilo: "sensual (sexy)" },
                     { label: "F", text: "Um sapato colorido e que ninguém tem", estilo: "criativa" },
                     { label: "G", text: "Uma rasteira fácil de calçar", estilo: "básica" }
                 ]
@@ -800,7 +800,7 @@
                     { label: "B", text: "Gosto de roupas clássicas porque gosto de estar bem vestida de forma prática", estilo: "tradicional" },
                     { label: "C", text: "Gosto de roupas clássicas mas mas também me interesso por elementos criativos e modernos", estilo: "dramática" },
                     { label: "D", text: "Gosto de roupas que tenham romantismo e feminilidade", estilo: "romântica" },
-                    { label: "E", text: "Gosto de roupas que sejam sensuais mas que não sejam vulgares", estilo: "sexy" },
+                    { label: "E", text: "Gosto de roupas que sejam sensuais mas que não sejam vulgares", estilo: "sensual (sexy)" },
                     { label: "F", text: "Gosto de roupas diferentes e criativas, amo experimentar um pouco de tudo", estilo: "criativa" },
                     { label: "G", text: "Gosto de roupas fáceis, simples e que eu não pareça muito montada", estilo: "básica" }
                 ]
