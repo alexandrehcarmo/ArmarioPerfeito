@@ -917,9 +917,9 @@
             }
     }
 
-    // Inicia o quiz assim que a página carrega
+    // Inicia o quiz assim que a página carrega 
     window.addEventListener('load', initQuiz);
-
+    
 
     // fallback: garante que o clique em #btn-download-pdf funcione mesmo se a tela final for exibida sem passar por displayFinalResults()
     document.addEventListener('click', function (ev) {
@@ -1100,7 +1100,11 @@
     setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
 
-// === DEBUG BYPASS: forçar tela final + ativar download local ===
+/* === DEBUG BYPASS: forçar tela final + ativar download local ===
+   BLOCO COMENTADO PARA RESTAURAR FLUXO NORMAL (inicio)
+   — original removido para execução normal do quiz
+*/
+/*
 (function(){
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(async () => {
@@ -1111,46 +1115,29 @@
           if (typeof perguntaAtualIndice === 'number') {
             perguntaAtualIndice = (typeof perguntas !== 'undefined' && perguntas.length) ? perguntas.length-1 : perguntaAtualIndice;
           }
-        } catch(e){ /* ignore */ }
-
-        // Preenche valores mínimos caso estejam vazios (evita "NÃO DEFINIDO")
+        } catch(e){ }
         if (!window.estilosPrimarioSecundario || !window.estilosPrimarioSecundario.primary) {
           window.estilosPrimarioSecundario = { primary: 'casual', secondary: 'elegante', tertiary: 'minimalista' };
         }
         if (typeof window.detalhesEstiloMapCompleto === 'undefined') {
-          window.detalhesEstiloMapCompleto = {
-            casual: 'Descrição do estilo casual.',
-            elegante: 'Descrição do estilo elegante.',
-            minimalista: 'Descrição do estilo minimalista.'
-          };
+          window.detalhesEstiloMapCompleto = { casual: 'Descrição do estilo casual.', elegante: 'Descrição do estilo elegante.', minimalista: 'Descrição do estilo minimalista.' };
         }
-
-        // Gera a tela final
         if (typeof displayFinalResults === 'function') {
           displayFinalResults();
         } else {
           console.error('displayFinalResults não encontrada');
           return;
         }
-
-        // Substitui o listener do botão por um handler que baixa o PDF localmente
         setTimeout(() => {
           const btn = document.getElementById('btn-download-pdf');
-          if (!btn) {
-            console.warn('btn-download-pdf não encontrado');
-            return;
-          }
+          if (!btn) { console.warn('btn-download-pdf não encontrado'); return; }
           const clone = btn.cloneNode(true);
           btn.parentNode.replaceChild(clone, btn);
           clone.addEventListener('click', async (ev) => {
             ev.preventDefault();
             const finalEl = document.getElementById('final-resultado');
-            if (!finalEl) {
-              alert('Elemento final não encontrado');
-              return;
-            }
+            if (!finalEl) { alert('Elemento final não encontrado'); return; }
             try {
-              // usa sua função existente que gera Blob via html2pdf
               const blob = await generatePdfBlobFromElement(finalEl);
               const filename = `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`;
               downloadPdfBlob(blob, filename);
@@ -1160,11 +1147,12 @@
             }
           });
         }, 300);
-
       } catch (err) {
         console.error('Bypass geral falhou:', err);
       }
     }, 300);
   });
 })();
+*/
 
+/* === DEBUG BYPASS (fim) === */
