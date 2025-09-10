@@ -4,6 +4,49 @@
     let estilosPrimarioSecundario = { primary: null, secondary: null, tertiary: null };
     let perguntaAtualIndice = -1;
     let faseAtual = 1;
+
+    /* ====== Robust loader for html2pdf (definitive fix) ====== */
+    async function loadScriptOnce(url, id) {
+    if (id && document.getElementById(id)) return; // já carregado
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        if (id) s.id = id;
+        s.src = url;
+        s.async = false; // manter ordem previsível
+        s.onload = () => resolve();
+        s.onerror = (e) => reject(new Error('Failed to load script ' + url));
+        document.head.appendChild(s);
+    });
+    }
+
+    async function ensureHtml2pdf() {
+    // já disponível
+    if (window.html2pdf && typeof window.html2pdf === 'function') return;
+
+    // tenta carregar versão conhecida compatível
+    const cdn = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    try {
+        await loadScriptOnce(cdn, 'html2pdf-lib');
+        // aguarda microtick para garantir binding global
+        await new Promise(r => setTimeout(r, 20));
+        if (window.html2pdf && typeof window.html2pdf === 'function') return;
+        throw new Error('html2pdf carregado mas não expõe função global html2pdf');
+    } catch (err) {
+        // fallback: tenta versão anterior sem bloqueio de integrity
+        const fallback = 'https://unpkg.com/html2pdf.js@0.9.2/dist/html2pdf.bundle.js';
+        try {
+        await loadScriptOnce(fallback, 'html2pdf-fallback');
+        await new Promise(r => setTimeout(r, 20));
+        if (window.html2pdf && typeof window.html2pdf === 'function') return;
+        throw new Error('fallback carregado mas html2pdf não disponível');
+        } catch (err2) {
+        // Erro definitivo
+        throw new Error('Não foi possível carregar html2pdf. Verifique conexão/CDN. ' + err2.message);
+        }
+    }
+    }
+    /* ======================================================= */
+
     const totalPerguntas = 35;
     const todosOsEstilos = ["clássica", "tradicional", "dramática", "romântica", "sensual (sexy)", "criativa", "básica"];
     const labelsOpcoes = ["A", "B", "C", "D", "E", "F", "G"];
@@ -404,6 +447,27 @@
         return array;
     }
 
+    async function handleDownload() {
+        try {
+            const finalEl = document.getElementById('final-resultado');
+            if (!finalEl) throw new Error('Elemento #final-resultado não encontrado');
+
+            // Gera blob via html2pdf (usa sua função robusta)
+            const blob = await generatePdfBlobFromElement(finalEl);
+
+            const filename = `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`;
+            downloadPdfBlob(blob, filename);
+        } catch (err) {
+            console.error('handleDownload erro:', err);
+            // fallback: abre a janela de print (usuário pode salvar como PDF)
+            try {
+            createPrintViewAndPrint(document.getElementById('final-resultado'));
+            } catch (e) {
+            alert('Erro ao gerar PDF. Veja console para detalhes.');
+            }
+        }
+    }
+
     function displayFinalResults() {
         const finalDiv = document.getElementById('final-resultado');
 
@@ -491,14 +555,16 @@
         }, 80);
 
 
-        // liga o botão ao gerador de print/PDF
+        // liga o botão à coleta de nome/email + envio
         const pdfBtn = document.getElementById('btn-download-pdf');
         if (pdfBtn) {
-            pdfBtn.addEventListener('click', () => {
-                // cria uma nova janela com versão leve do resultado e chama print
-                createPrintViewAndPrint(document.getElementById('final-resultado'));
-            });
+            // remove listeners antigos (caso já tenham sido ligados em execuções anteriores)
+            const clone = pdfBtn.cloneNode(true);
+            pdfBtn.parentNode.replaceChild(clone, pdfBtn);
+            clone.addEventListener('click', handleDownload);
+
         }
+
     }
 
     /**
@@ -552,7 +618,7 @@
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         // Se mobile -> tenta gerar PDF com html2pdf
-        if (isMobile && typeof html2pdf !== 'undefined') {
+        if (isMobile && window.html2pdf && typeof window.html2pdf === 'function') {
             // Cria temporariamente um elemento em memória com o HTML
             const wrapper = document.createElement('div');
             wrapper.innerHTML = printHTML;
@@ -572,7 +638,7 @@
             // Use html2pdf para gerar e baixar
             try {
                 // html2pdf aceita um elemento DOM — passamos wrapper.firstElementChild (o <html>)
-                html2pdf().set(opt).from(wrapper).save().then(() => {
+                window.html2pdf().set(opt).from(wrapper).save().then(() => {
                     console.info('PDF gerado e download iniciado (mobile).');
                 }).catch(err => {
                     console.warn('html2pdf falhou, fallback para abrir print:', err);
@@ -854,6 +920,37 @@
     // Inicia o quiz assim que a página carrega
     window.addEventListener('load', initQuiz);
 
+
+    // fallback: garante que o clique em #btn-download-pdf funcione mesmo se a tela final for exibida sem passar por displayFinalResults()
+    document.addEventListener('click', function (ev) {
+    const btn = ev.target.closest && ev.target.closest('#btn-download-pdf');
+    if (!btn) return;
+    ev.preventDefault();
+    // chama o handler existente se houver
+    if (typeof handleDownload === 'function') {
+        try { handleDownload(); } catch (e) { console.error('handleDownload erro (fallback):', e); }
+        return;
+    }
+    // fallback direto caso handleDownload não exista por algum motivo
+    (async () => {
+        const finalEl = document.getElementById('final-resultado');
+        if (!finalEl) { alert('Elemento final não encontrado'); return; }
+        try {
+        if (typeof generatePdfBlobFromElement === 'function') {
+            const blob = await generatePdfBlobFromElement(finalEl);
+            downloadPdfBlob(blob, `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`);
+        } else {
+            createPrintViewAndPrint(finalEl);
+        }
+        } catch (err) {
+        console.error('Fallback geração PDF erro:', err);
+        try { createPrintViewAndPrint(finalEl); } catch(e){ alert('Falha ao gerar PDF. Veja console.'); }
+        }
+    })();
+    });
+
+
+
     // Expondo funções globais para funcionar com type="module"
     window.nextIntroPage = nextIntroPage;
     window.prevIntroPage = prevIntroPage;
@@ -881,4 +978,193 @@
 
         lastScrollY = currentScrollY;
     });
+
+
+        /* ---------- NEW: send modal + client PDF generation + upload ---------- */
+
+    const sendModalEl = document.getElementById('send-result-modal');
+    const sendModal = sendModalEl ? new bootstrap.Modal(sendModalEl) : null;
+
+    function openSendModalPrefill() {
+    const nameInput = document.getElementById('sendName');
+    const emailInput = document.getElementById('sendEmail');
+    // preenche se já existir em sessionStorage
+    if (sessionStorage.getItem('ap_name')) nameInput.value = sessionStorage.getItem('ap_name');
+    if (sessionStorage.getItem('ap_email')) emailInput.value = sessionStorage.getItem('ap_email');
+    sendModal.show();
+    }
+
+    // Gera PDF do container #final-resultado em blob usando html2pdf (robusto)
+    // Gera PDF do container #final-resultado em blob usando html2pdf (robusto + sanitiza CSS problemático)
+    async function generatePdfBlobFromElement(element) {
+        if (!element) throw new Error('Elemento final-resultado não encontrado');
+
+        // garante que a lib esteja carregada
+        await ensureHtml2pdf();
+
+        // opções html2pdf/html2canvas
+        const opt = {
+            margin:       [10, 8, 10, 8],
+            filename:     `Resultado_ArmarioPerfeito.pdf`,
+            image:        { type: 'jpeg', quality: 0.95 },
+            html2canvas:  { 
+            scale: 2, 
+            useCORS: true, 
+            logging: false,
+            // onclone sanitiza o documento clonado antes do html2canvas tentar parsear CSS
+            onclone: (clonedDoc) => {
+                try {
+                // pega lista de elementos do original e do clone na mesma ordem
+                const originals = element.querySelectorAll('*');
+                const clones = clonedDoc.querySelectorAll('*');
+
+                const len = Math.min(originals.length, clones.length);
+                for (let i = 0; i < len; i++) {
+                    const o = originals[i];
+                    const c = clones[i];
+                    if (!o || !c) continue;
+
+                    const cs = window.getComputedStyle(o);
+
+                    // força valores seguros (resolvidos pelo navegador)
+                    if (cs.color) c.style.color = cs.color;
+                    if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                    c.style.backgroundColor = cs.backgroundColor;
+                    } else {
+                    c.style.backgroundColor = '#ffffff';
+                    }
+
+                    // desativa imagens/gradientes problemáticos no clone e aplica fallback
+                    c.style.backgroundImage = 'none';
+                    c.style.boxShadow = 'none';
+
+                    // bordas e sombras
+                    if (cs.borderColor) c.style.borderColor = cs.borderColor;
+
+                    // remove filtros e propriedades que costumam quebrar o parser
+                    c.style.filter = 'none';
+                    c.style.backdropFilter = 'none';
+                }
+
+                // também limpar estilos do <html> e <body> clonados que possam conter gradientes
+                const clonedHtml = clonedDoc.querySelector('html');
+                const clonedBody = clonedDoc.querySelector('body');
+                if (clonedHtml) {
+                    clonedHtml.style.backgroundImage = 'none';
+                    clonedHtml.style.backgroundColor = '#ffffff';
+                }
+                if (clonedBody) {
+                    clonedBody.style.backgroundImage = 'none';
+                    clonedBody.style.backgroundColor = '#ffffff';
+                }
+                } catch (e) {
+                // não falha o processo se algo inesperado acontecer aqui
+                console.warn('onclone sanitization error', e);
+                }
+            }
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // tenta o método moderno outputPdf('blob')
+        try {
+            if (window.html2pdf && typeof window.html2pdf === 'function' && typeof window.html2pdf().set === 'function' && typeof window.html2pdf().from === 'function') {
+            const blob = await window.html2pdf().set(opt).from(element).outputPdf('blob');
+            return blob;
+            }
+        } catch (err) {
+            console.warn('outputPdf falhou, tentando fallback...', err);
+        }
+
+        // fallback para versões antigas (0.9.x): gera e pega blob via Promise
+        return await new Promise((resolve, reject) => {
+            try {
+            window.html2pdf().set(opt).from(element).toPdf().output('blob', (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error('Falha ao obter blob (fallback).'));
+            });
+            } catch (e) {
+            reject(new Error('Erro ao gerar PDF (fallback): ' + e.message));
+            }
+        });
+    }
+
+    function downloadPdfBlob(pdfBlob, filename = 'resultado-armario-perfeito.pdf') {
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+// === DEBUG BYPASS: forçar tela final + ativar download local ===
+(function(){
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(async () => {
+      try {
+        // Força estado final
+        try { faseAtual = 3; } catch(e){ window.faseAtual = 3; }
+        try {
+          if (typeof perguntaAtualIndice === 'number') {
+            perguntaAtualIndice = (typeof perguntas !== 'undefined' && perguntas.length) ? perguntas.length-1 : perguntaAtualIndice;
+          }
+        } catch(e){ /* ignore */ }
+
+        // Preenche valores mínimos caso estejam vazios (evita "NÃO DEFINIDO")
+        if (!window.estilosPrimarioSecundario || !window.estilosPrimarioSecundario.primary) {
+          window.estilosPrimarioSecundario = { primary: 'casual', secondary: 'elegante', tertiary: 'minimalista' };
+        }
+        if (typeof window.detalhesEstiloMapCompleto === 'undefined') {
+          window.detalhesEstiloMapCompleto = {
+            casual: 'Descrição do estilo casual.',
+            elegante: 'Descrição do estilo elegante.',
+            minimalista: 'Descrição do estilo minimalista.'
+          };
+        }
+
+        // Gera a tela final
+        if (typeof displayFinalResults === 'function') {
+          displayFinalResults();
+        } else {
+          console.error('displayFinalResults não encontrada');
+          return;
+        }
+
+        // Substitui o listener do botão por um handler que baixa o PDF localmente
+        setTimeout(() => {
+          const btn = document.getElementById('btn-download-pdf');
+          if (!btn) {
+            console.warn('btn-download-pdf não encontrado');
+            return;
+          }
+          const clone = btn.cloneNode(true);
+          btn.parentNode.replaceChild(clone, btn);
+          clone.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            const finalEl = document.getElementById('final-resultado');
+            if (!finalEl) {
+              alert('Elemento final não encontrado');
+              return;
+            }
+            try {
+              // usa sua função existente que gera Blob via html2pdf
+              const blob = await generatePdfBlobFromElement(finalEl);
+              const filename = `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`;
+              downloadPdfBlob(blob, filename);
+            } catch (err) {
+              console.error('Erro ao gerar/baixar PDF, tentando fallback print:', err);
+              try { createPrintViewAndPrint(finalEl); } catch(e){ alert('Falha ao gerar PDF. Veja console.'); }
+            }
+          });
+        }, 300);
+
+      } catch (err) {
+        console.error('Bypass geral falhou:', err);
+      }
+    }, 300);
+  });
+})();
 
