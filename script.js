@@ -756,7 +756,7 @@
                     { label: "B", text: "Um blazer reto, risca de giz marinho", estilo: "tradicional" },
                     { label: "C", text: "Um blazer oversized com ombreiras", estilo: "dramática" },
                     { label: "D", text: "Um casaquinho de tweed rosa", estilo: "romântica" },
-                    { label: "E", text: "Uma casaco de pelos vinho", estilo: "sensual (sexy)" },
+                    { label: "E", text: "Um casaco de pelos vinho", estilo: "sensual (sexy)" },
                     { label: "F", text: "Um kimono de veludo bordado com paetês coloridos", estilo: "criativa" },
                     { label: "G", text: "Uma jaqueta de couro preta", estilo: "básica" }
                 ]
