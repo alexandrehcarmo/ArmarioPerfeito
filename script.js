@@ -1109,6 +1109,45 @@
                             clonedBody.style.overflow = 'visible';
                         }
 
+                        // --- Forçar escala para caber em 1 página (apenas no CLONE) ---
+                        try {
+                            if (clonedBody) { // <<< garantia de existência
+                                // altura de página alvo em pixels (A4 portrait ~1122px @96dpi). Ajustável se necessário.
+                                // alteração sugerida para mobile mais agressivo (ex.: A4 comum -> valor menor)
+                                const pagePx = 900; // ou testar 900 se ainda vier 2 páginas
+                                // const pagePx = 1122;
+                                const marginPx = 40; // margens top+bottom reservadas
+                                const targetHeight = pagePx - marginPx;
+
+                                // se por algum motivo o clone ainda não tiver altura final, mede depois de pequenos timeouts
+                                const measureAndScale = () => {
+                                    const bodyH = clonedBody.scrollHeight || clonedBody.offsetHeight || clonedDoc.documentElement.scrollHeight;
+                                    if (bodyH && bodyH > 0 && bodyH > targetHeight) {
+                                        const scale = targetHeight / bodyH;
+                                        // aplica escala e garante origem no topo/esquerda
+                                        clonedBody.style.transformOrigin = 'top left';
+                                        clonedBody.style.transform = `scale(${scale})`;
+                                        // ajusta largura para compensar o scale (evita overflow horizontal)
+                                        clonedBody.style.width = `${100 / scale}%`;
+                                        // reduz espaçamentos que ajudam a criar nova página
+                                        clonedBody.style.padding = '0';
+                                        clonedBody.style.margin = '0';
+                                    } else {
+                                        // garante estado normal quando não precisa escalar
+                                        clonedBody.style.transform = '';
+                                        clonedBody.style.width = '';
+                                    }
+                                };
+
+                                // tenta medir agora; mede novamente após 50ms e 300ms para garantir estabilidade em mobiles
+                                measureAndScale();
+                                setTimeout(measureAndScale, 50);
+                                setTimeout(measureAndScale, 300);
+                            }
+                        } catch (e) {
+                            // não interrompe o processo se algo falhar
+                            console.warn('scale-for-one-page failed', e);
+                        }
                         // Remove elements that are effectively empty at the end of the document which can create blank pages
                         try {
                             const last = clonedBody && clonedBody.lastElementChild;
@@ -1159,60 +1198,3 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
-
-/* === DEBUG BYPASS: forçar tela final + ativar download local ===
-   BLOCO COMENTADO PARA RESTAURAR FLUXO NORMAL (inicio)
-   — original removido para execução normal do quiz
-*/
-/*
-(function(){
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(async () => {
-      try {
-        // Força estado final
-        try { faseAtual = 3; } catch(e){ window.faseAtual = 3; }
-        try {
-          if (typeof perguntaAtualIndice === 'number') {
-            perguntaAtualIndice = (typeof perguntas !== 'undefined' && perguntas.length) ? perguntas.length-1 : perguntaAtualIndice;
-          }
-        } catch(e){ }
-        if (!window.estilosPrimarioSecundario || !window.estilosPrimarioSecundario.primary) {
-          window.estilosPrimarioSecundario = { primary: 'casual', secondary: 'elegante', tertiary: 'minimalista' };
-        }
-        if (typeof window.detalhesEstiloMapCompleto === 'undefined') {
-          window.detalhesEstiloMapCompleto = { casual: 'Descrição do estilo casual.', elegante: 'Descrição do estilo elegante.', minimalista: 'Descrição do estilo minimalista.' };
-        }
-        if (typeof displayFinalResults === 'function') {
-          displayFinalResults();
-        } else {
-          console.error('displayFinalResults não encontrada');
-          return;
-        }
-        setTimeout(() => {
-          const btn = document.getElementById('btn-download-pdf');
-          if (!btn) { console.warn('btn-download-pdf não encontrado'); return; }
-          const clone = btn.cloneNode(true);
-          btn.parentNode.replaceChild(clone, btn);
-          clone.addEventListener('click', async (ev) => {
-            ev.preventDefault();
-            const finalEl = document.getElementById('final-resultado');
-            if (!finalEl) { alert('Elemento final não encontrado'); return; }
-            try {
-              const blob = await generatePdfBlobFromElement(finalEl);
-              const filename = `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`;
-              downloadPdfBlob(blob, filename);
-            } catch (err) {
-              console.error('Erro ao gerar/baixar PDF, tentando fallback print:', err);
-              try { createPrintViewAndPrint(finalEl); } catch(e){ alert('Falha ao gerar PDF. Veja console.'); }
-            }
-          });
-        }, 300);
-      } catch (err) {
-        console.error('Bypass geral falhou:', err);
-      }
-    }, 300);
-  });
-})();
-*/
-
-/* === DEBUG BYPASS (fim) === */
