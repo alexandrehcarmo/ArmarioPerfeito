@@ -5,48 +5,6 @@
     let perguntaAtualIndice = -1;
     let faseAtual = 1;
 
-    /* ====== Robust loader for html2pdf (definitive fix) ====== */
-    async function loadScriptOnce(url, id) {
-    if (id && document.getElementById(id)) return; // já carregado
-    return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        if (id) s.id = id;
-        s.src = url;
-        s.async = false; // manter ordem previsível
-        s.onload = () => resolve();
-        s.onerror = (e) => reject(new Error('Failed to load script ' + url));
-        document.head.appendChild(s);
-    });
-    }
-
-    async function ensureHtml2pdf() {
-    // já disponível
-    if (window.html2pdf && typeof window.html2pdf === 'function') return;
-
-    // tenta carregar versão conhecida compatível
-    const cdn = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-    try {
-        await loadScriptOnce(cdn, 'html2pdf-lib');
-        // aguarda microtick para garantir binding global
-        await new Promise(r => setTimeout(r, 20));
-        if (window.html2pdf && typeof window.html2pdf === 'function') return;
-        throw new Error('html2pdf carregado mas não expõe função global html2pdf');
-    } catch (err) {
-        // fallback: tenta versão anterior sem bloqueio de integrity
-        const fallback = 'https://unpkg.com/html2pdf.js@0.9.2/dist/html2pdf.bundle.js';
-        try {
-        await loadScriptOnce(fallback, 'html2pdf-fallback');
-        await new Promise(r => setTimeout(r, 20));
-        if (window.html2pdf && typeof window.html2pdf === 'function') return;
-        throw new Error('fallback carregado mas html2pdf não disponível');
-        } catch (err2) {
-        // Erro definitivo
-        throw new Error('Não foi possível carregar html2pdf. Verifique conexão/CDN. ' + err2.message);
-        }
-    }
-    }
-    /* ======================================================= */
-
     const totalPerguntas = 35;
     const todosOsEstilos = ["clássica", "tradicional", "dramática", "romântica", "sensual (sexy)", "criativa", "básica"];
     const labelsOpcoes = ["A", "B", "C", "D", "E", "F", "G"];
@@ -452,21 +410,33 @@
             const finalEl = document.getElementById('final-resultado');
             if (!finalEl) throw new Error('Elemento #final-resultado não encontrado');
 
-            // Gera blob via html2pdf (usa sua função robusta)
-            const blob = await generatePdfBlobFromElement(finalEl);
+            // Aqui você deve coletar o nome e e-mail, talvez do modal de envio
+            // que já existe no script de Estilo (openSendModalPrefill)
+            const nomeDoUsuario = document.getElementById('sendName')?.value || '';
+            const emailDoUsuario = document.getElementById('sendEmail')?.value || '';
 
             const filename = `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`;
-            downloadPdfBlob(blob, filename);
-        } catch (err) {
-            console.error('handleDownload erro:', err);
-            // fallback: abre a janela de print (usuário pode salvar como PDF)
-            try {
-            createPrintViewAndPrint(document.getElementById('final-resultado'));
-            } catch (e) {
-            alert('Erro ao gerar PDF. Veja console para detalhes.');
+
+            await generatePdfForEstiloAndDownload(filename, nomeDoUsuario, emailDoUsuario);
+
+            } catch (err) {
+                console.error('handleDownload erro:', err);
+                // Fallback: o BIOTIPO já tem um fallback em sua lógica, mas você pode adicionar um alert
+                alert('Erro ao gerar PDF. Por favor, tente novamente ou verifique o console.');
+            }       
+        }   
+            // O listener de fallback também precisa ser atualizado para chamar a nova função
+            document.addEventListener('click', function (ev) {
+            const btn = ev.target.closest && ev.target.closest('#btn-download-pdf');
+            if (!btn) return;
+            ev.preventDefault();
+            // Chama o handleDownload que agora usa a lógica do BIOTIPO
+            if (typeof handleDownload === 'function') {
+                try { handleDownload(); } catch (e) { console.error('handleDownload erro (fallback):', e); }
+                return;
             }
-        }
-    }
+            // ... (seção de fallback que antes estava aqui pode ser removida se handleDownload for robusto) ...
+        });
 
     function displayFinalResults() {
         const finalDiv = document.getElementById('final-resultado');
@@ -581,108 +551,7 @@
      * - Desktop: abre janela e chama print()
      * - Mobile: utiliza html2pdf (cliente) para gerar e baixar o PDF
      */
-    function createPrintViewAndPrint(finalContainer) {
-        if (!finalContainer) {
-            console.warn('createPrintViewAndPrint: container não encontrado');
-            return;
-        }
-
-        // Conteúdo que vamos imprimir/transformar em PDF
-        const contentHTML = finalContainer.innerHTML;
-
-        // Versão leve do HTML que será usada tanto para print quanto para o html2pdf
-        const printHTML = `
-        <!doctype html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Resultado - Armário Perfeito</title>
-            <meta name="viewport" content="width=device-width,initial-scale=1">
-            <style>
-            body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial; color:#222; margin:12px; background:#fff; }
-            .final-results-header h3 { font-size: 20px; margin: 0 0 8px; }
-            .final-results-header p.lead { font-size: 14px; margin: 0 0 12px; }
-            .style-result { border-radius:6px; padding:10px; margin-bottom:10px; background:#fff; border:1px solid #e6e6e6; }
-            .style-name { font-size:16px; display:block; margin:6px 0; font-weight:700; color:#163d2e; }
-            .style-description { font-size:13px; line-height:1.45; color:#333; }
-            img { max-width:100%; height:auto; display:block; margin:6px 0; }
-            .result-export-controls { display:none !important; }
-            /* Forçar imagens menos pesadas no PDF (escala) */
-            img.pdf-optim { max-width: 480px; width: 100%; height: auto; object-fit: contain; }
-            </style>
-        </head>
-        <body>
-            ${contentHTML}
-        </body>
-        </html>
-        `;
-
-        // Detecta se é mobile simples
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        // Se mobile -> tenta gerar PDF com html2pdf
-        if (isMobile && window.html2pdf && typeof window.html2pdf === 'function') {
-            // Cria temporariamente um elemento em memória com o HTML
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = printHTML;
-            // Marcar imagens para otimização (aplica classe)
-            const imgs = wrapper.querySelectorAll('img');
-            imgs.forEach(img => img.classList.add('pdf-optim'));
-
-            // Configurações do html2pdf
-            const opt = {
-                margin:       [10, 8, 10, 8], // mm (top,right,bottom,left)
-                filename:     `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.pdf`,
-                image:        { type: 'jpeg', quality: 0.85 },
-                html2canvas:  { scale: 1.5, useCORS: true, logging: false },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            // Use html2pdf para gerar e baixar
-            try {
-                // html2pdf aceita um elemento DOM — passamos wrapper.firstElementChild (o <html>)
-                window.html2pdf().set(opt).from(wrapper).save().then(() => {
-                    console.info('PDF gerado e download iniciado (mobile).');
-                }).catch(err => {
-                    console.warn('html2pdf falhou, fallback para abrir print:', err);
-                    // fallback: tenta abrir print normal (menos confiável em mobile)
-                    openPrintWindowFallback(printHTML);
-                });
-            } catch (err) {
-                console.error('Erro ao usar html2pdf:', err);
-                openPrintWindowFallback(printHTML);
-            }
-            return;
-        }
-
-        // Desktop: usar janela + print
-        openPrintWindowFallback(printHTML);
-
-        // função auxiliar para fallback (abre nova janela e chama print)
-        function openPrintWindowFallback(htmlContent) {
-            const w = window.open('', '_blank', 'toolbar=0,location=0,menubar=0,width=900,height=700');
-            if (!w) {
-                alert('Não foi possível abrir a janela de impressão. Permita popups e tente novamente.');
-                return;
-            }
-            w.document.open();
-            w.document.write(htmlContent);
-            w.document.close();
-
-            // espera carregar recursos (simples timeout)
-            setTimeout(() => {
-                try {
-                    w.focus();
-                    w.print();
-                    // tenta fechar a janela depois do print
-                    setTimeout(() => { try { w.close(); } catch (e) {} }, 1000);
-                } catch (err) {
-                    console.error('Erro ao chamar print:', err);
-                }
-            }, 400);
-        }
-    }
-
+    
     function getEstiloVencedor(pontuacoes, estilosExcluidos) {
         let maxPontos = -1;
         let vencedoresPotenciais = [];
@@ -926,33 +795,24 @@
 
     // fallback: garante que o clique em #btn-download-pdf funcione mesmo se a tela final for exibida sem passar por displayFinalResults()
     document.addEventListener('click', function (ev) {
-    const btn = ev.target.closest && ev.target.closest('#btn-download-pdf');
-    if (!btn) return;
-    ev.preventDefault();
-    // chama o handler existente se houver
-    if (typeof handleDownload === 'function') {
-        try { handleDownload(); } catch (e) { console.error('handleDownload erro (fallback):', e); }
-        return;
-    }
-    // fallback direto caso handleDownload não exista por algum motivo
-    (async () => {
-        const finalEl = document.getElementById('final-resultado');
-        if (!finalEl) { alert('Elemento final não encontrado'); return; }
-        try {
-        if (typeof generatePdfBlobFromElement === 'function') {
-            const blob = await generatePdfBlobFromElement(finalEl);
-            downloadPdfBlob(blob, `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`);
+        const btn = ev.target.closest && ev.target.closest('#btn-download-pdf');
+        if (!btn) return; // Não é o botão de download
+        ev.preventDefault();
+        ev.stopPropagation(); // Garante que apenas este listener age no clique do botão
+        
+        // Chama diretamente a função principal handleDownload
+        if (typeof handleDownload === 'function') {
+            try {
+                handleDownload();
+            } catch (e) {
+                console.error('Erro no handleDownload (acionado via listener):', e);
+                alert('Falha ao gerar PDF. Verifique o console para detalhes.');
+            }
         } else {
-            createPrintViewAndPrint(finalEl);
+            console.error('Função handleDownload não definida.');
+            alert('Falha ao gerar PDF: Função de download não encontrada.');
         }
-        } catch (err) {
-        console.error('Fallback geração PDF erro:', err);
-        try { createPrintViewAndPrint(finalEl); } catch(e){ alert('Falha ao gerar PDF. Veja console.'); }
-        }
-    })();
     });
-
-
 
     // Expondo funções globais para funcionar com type="module"
     window.nextIntroPage = nextIntroPage;
@@ -1016,308 +876,239 @@
     // Exemplo de uso: esperar antes de chamar a rotina de geração
     waitForLogo(3000).then(() => {
         // aqui chama a sua função original que gera o PDF, ex:
-        generatePdfBlobFromElement(element);
+        generatePdfForEstiloAndDownload(element);
         // ou html2pdf().from(element)...
         // mantenha sua chamada original aqui sem alteração.
     });
 
-    // Gera PDF do container #final-resultado em blob usando html2pdf (robusto)
-    async function generatePdfBlobFromElement(element) {
-        if (!element) throw new Error('Elemento final-resultado não encontrado');
-
-        // garante que a lib esteja carregada
-        await ensureHtml2pdf();
-
-        // opções html2pdf/html2canvas
-        const opt = {
-            margin:       [10, 8, 10, 8],
-            filename:     `Resultado_ArmarioPerfeito.pdf`,
-            image:        { type: 'jpeg', quality: 0.95 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true, 
-                logging: false,
-                // onclone sanitiza o documento clonado antes do html2canvas tentar parsear CSS
-                onclone: (clonedDoc) => {
-                    try {
-                        // proteção: garante que o elemento original existe
-                        if (typeof element === 'undefined' || !element) {
-                            console.warn('onclone: elemento original (element) não encontrado — abortando sanitização do clone.');
-                            return;
-                        }
-                        // pega lista de elementos do original e do clone na mesma ordem
-                        const originals = element.querySelectorAll('*');
-                        const clones = clonedDoc.querySelectorAll('*');
-
-                        const len = Math.min(originals.length, clones.length);
-                        for (let i = 0; i < len; i++) {
-                            const o = originals[i];
-                            const c = clones[i];
-                            if (!o || !c) continue;
-
-                            const cs = window.getComputedStyle(o);
-
-                            // força valores seguros (resolvidos pelo navegador)
-                            if (cs.color) c.style.color = cs.color;
-                            if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') {
-                                c.style.backgroundColor = cs.backgroundColor;
-                            } else {
-                                c.style.backgroundColor = '#ffffff';
-                            }
-
-                            // desativa imagens/gradientes problemáticos no clone e aplica fallback
-                            c.style.backgroundImage = 'none';
-                            c.style.boxShadow = 'none';
-
-                            // bordas e sombras
-                            if (cs.borderColor) c.style.borderColor = cs.borderColor;
-
-                            // remove filtros e propriedades que costumam quebrar o parser
-                            c.style.filter = 'none';
-                            c.style.backdropFilter = 'none';
-
-                            // --- sanitize inline style text that can contain modern color functions ---
-                            const inline = c.getAttribute && c.getAttribute('style');
-                            if (inline && /(?:color-mix|color\(|lab\(|lch\()/i.test(inline)) {
-                                try {
-                                    c.setAttribute('style', inline.replace(/(?:color-mix\([^\)]*\)|color\([^\)]*\)|lab\([^\)]*\)|lch\([^\)]*\))/gi, ''));
-                                } catch (e) { /* ignore per-element sanitize failures */ }
-                            }
-                        }
-
-                        // --- sanitize <style> tags inside the cloned document (remove unsupported functions and page-breaks) ---
-                        const styleTags = clonedDoc.querySelectorAll('style');
-                        styleTags.forEach(st => {
-                            try {
-                                // remove modern color functions and any page-break rules that can create blank pages
-                            st.textContent = st.textContent
-                                .replace(/(?:color-mix\([^\)]*\)|color\([^\)]*\)|lab\([^\)]*\)|lch\([^\)]*\))/gi, '')
-                                .replace(/page-break-(after|before):\s*always;?/gi, '')
-                                .replace(/break-(after|before):\s*page;?/gi, '')
-                                .replace(/@page[^{]*\{[^}]*\}/gi, '')              // remove regras @page
-                                .replace(/break-inside:\s*avoid;?/gi, '')         // remove avoid breaks
-                                .replace(/orphans:\s*\d+;?/gi, '')                // remove orphans
-                                .replace(/widows:\s*\d+;?/gi, '');                // remove widows
-                            } catch (e) { /* ignore */ }
-                        });
-
-                        // Remove external stylesheets from the clone head (to avoid complex rules)
-                        const head = clonedDoc.querySelector('head');
-                        if (head) {
-                            head.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-                                try {
-                                    const href = link.getAttribute('href') || '';
-                                    // preserve arquivos de fontes/external font providers (ex: googleapis, gstatic, woff, woff2, ttf)
-                                    if (/fonts\.googleapis|fonts\.gstatic|\.woff2?|\.ttf|\.otf/i.test(href)) {
-                                        // mantém link para carregar fontes (essencial para medidas corretas)
-                                        return;
-                                    }
-                                    // para outros estilos: em vez de remover, reduz seu impacto definindo media=print
-                                    // isso tende a manter fontes carregadas, mas reduz re-parsing de regras que podem quebrar html2canvas
-                                    try {
-                                        link.media = 'print';
-                                    } catch (e) {
-                                        // fallback: se não conseguimos ajustar media, removemos
-                                        link.remove();
-                                    }
-                                } catch (e) {
-                                    // se algo falhar aqui, não interrompe o processo
-                                    try { link.remove(); } catch (err) {}
-                                }
-                            });
-                        }
-                        // Remove the on-screen export controls (button) from the CLONE so they don't appear in the PDF
-                        const hideSelectors = ['#btn-download-pdf', '#download-pdf', '.result-export-controls', '#btnGenerateAndSend'];
-                        hideSelectors.forEach(sel => {
-                            try {
-                                clonedDoc.querySelectorAll(sel).forEach(n => n.remove());
-                            } catch (e) { /* ignore */ }
-                        });
-
-                        // Inject a small safety style into the clone to avoid forced page-breaks or extra margins
-                        try {
-                            const safetyStyle = clonedDoc.createElement('style');
-                            safetyStyle.textContent = `
-                                /* Small adjustments only for the CLONE used to render PDF */
-                                html, body { height: auto !important; overflow: visible !important; margin: 0; padding: 8px; }
-                                body { font-size: 13px !important; line-height: 1.2 !important; color: #000 !important; }
-                                /* Title styling fallback — se for h1/h2/p com esse texto, será maior via JS abaixo */
-                                h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 20px !important; font-weight: 700 !important; margin-bottom: 12px !important; }
-                                h1,h2,h3,h4 { page-break-after: avoid !important; break-after: avoid !important; }
-                                p, ul, ol { page-break-inside: avoid !important; break-inside: avoid !important; }
-                                img, img.logo, img.logo-topo, .logo { max-width: 160px !important; height: auto !important; display: block !important; }                                
-                                .logo-topo { margin: 0 0 12px 0 !important; }
-                                .result-export-controls, #btn-download-pdf, #download-pdf { display: none !important; }
-                                * { box-sizing: border-box !important; -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
-                            `;
-                            if (head) head.appendChild(safetyStyle);
-                            // --- Ajustes finais no clone: centralizar título detectando o texto e destacar rótulos ---
-                            try {
-                                // centraliza e aumenta o título que contém "Diagnóstico de estilo finalizado"
-                                const possibleTitle = Array.from(clonedDoc.querySelectorAll('h1,h2,h3,p,div')).find(n => /Diagn[áa]stico de estilo finalizado/i.test(n.textContent));
-                                if (possibleTitle) {
-                                    possibleTitle.style.textAlign = 'center';
-                                    possibleTitle.style.fontSize = '20px';
-                                    possibleTitle.style.fontWeight = '700';
-                                    possibleTitle.style.marginBottom = '12px';
-                                }
-
-                                // realçar rótulos "Estilo Primário", "Estilo Secundário", "Estilo Terciário"
-                                ['Estilo Primário','Estilo Secundário','Estilo Terciário'].forEach(lbl => {
-                                    const node = Array.from(clonedDoc.querySelectorAll('*')).find(n => new RegExp('\\b' + lbl.replace(/ /g,'\\s+') + '\\b','i').test(n.textContent || ''));
-                                    if (node) {
-                                        node.style.fontSize = '16px';
-                                        node.style.fontWeight = '700';
-                                        node.style.marginTop = '10px';
-                                        node.style.marginBottom = '6px';
-                                    }
-                                });
-                            } catch (e) { /* não quebra se falhar */ }
-                        } catch (e) { /* ignore */ }
-
-                        // Ensure cloned html/body have no background gradients or large paddings that push an extra page
-                        const clonedHtml = clonedDoc.querySelector('html');
-                        const clonedBody = clonedDoc.querySelector('body');
-                        if (clonedHtml) {
-                            clonedHtml.style.backgroundImage = 'none';
-                            clonedHtml.style.backgroundColor = '#ffffff';
-                            clonedHtml.style.height = 'auto';
-                        }
-                        if (clonedBody) {
-                            clonedBody.style.backgroundImage = 'none';
-                            clonedBody.style.backgroundColor = '#ffffff';
-                            clonedBody.style.height = 'auto';
-                            clonedBody.style.paddingBottom = '0px';
-                            clonedBody.style.overflow = 'visible';
-                        }
-
-                        // --- Forçar escala para caber em 1 página (apenas no CLONE) ---
-                        // substituição segura: aguarda fonts, usa zoom (mais compatível com html2canvas) e retries
-                        try {
-                            if (clonedBody) {
-                                // altura de página alvo em pixels (A4 portrait ~1122px @96dpi). Ajuste se necessário.
-                                let pagePx = 1122;
-                                // em mobile pode ser útil um valor um pouco menor:
-                                if (window && window.innerWidth && window.innerWidth < 500) pagePx = 1000;
-                                const marginPx = 40; // margens top+bottom reservadas
-                                const targetHeight = pagePx - marginPx;
-
-                                // função que mede e aplica zoom (usa clonedDoc.documentElement para leituras corretas)
-                                const measureAndZoom = () => {
-                                    try {
-                                        // limpa qualquer transform anterior que possa atrapalhar a medição
-                                        clonedBody.style.transform = '';
-                                        clonedBody.style.transformOrigin = '';
-                                        // mede altura do clone
-                                        const bodyH = clonedBody.scrollHeight || clonedBody.offsetHeight || clonedDoc.documentElement.scrollHeight || 0;
-                                        if (bodyH > 0 && bodyH > targetHeight) {
-                                            const scale = targetHeight / bodyH;
-                                            // aplica zoom (mais estável que transform para html2canvas)
-                                        // tenta aplicar zoom; se não suportado, aplica transform de forma controlada
-                                        if ('zoom' in clonedBody.style) {
-                                            // aplica zoom e garante que qualquer transform anterior seja removido
-                                            clonedBody.style.zoom = scale;
-                                            clonedBody.style.transform = '';
-                                            clonedBody.style.transformOrigin = '';
-                                        } else {
-                                            // fallback: transform — aplicamos apenas se zoom não existe
-                                            clonedBody.style.transformOrigin = 'top left';
-                                            clonedBody.style.transform = `scale(${scale})`;
-                                            // garante que zoom não permaneça (segurança)
-                                            clonedBody.style.zoom = '';
-                                        }
-                                        // remove espaçamentos que empurram nova página
-                                        clonedBody.style.padding = '0';
-                                        clonedBody.style.margin = '0';
-                                        // garante largura compatível
-                                        clonedBody.style.width = `${100 / (scale || 1)}%`;
-                                        } else {
-                                            // restaura estado normal (limpa zoom/transform/padding/margin/width)
-                                            clonedBody.style.zoom = '';
-                                            clonedBody.style.transform = '';
-                                            clonedBody.style.transformOrigin = '';
-                                            clonedBody.style.width = '';
-                                            clonedBody.style.padding = '';
-                                            clonedBody.style.margin = '';
-                                        }
-                                    } catch (e) {
-                                        console.warn('measureAndZoom error', e);
-                                    }
-                                };
-
-                                // se o navegador suporta Font Loading API, aguarda fonts (melhora medidas em webfonts)
-                                const waitFonts = (timeout = 1200) => {
-                                    if (document && document.fonts && typeof document.fonts.ready !== 'undefined') {
-                                        return Promise.race([
-                                            document.fonts.ready,
-                                            new Promise(resolve => setTimeout(resolve, timeout))
-                                        ]);
-                                    }
-                                    return new Promise(resolve => setTimeout(resolve, timeout));
-                                };
-
-                                // roda medida/zoom após aguardar fonts e com múltiplos retries (mobile stability)
-                                waitFonts().then(() => {
-                                    measureAndZoom();
-                                    setTimeout(measureAndZoom, 50);
-                                    setTimeout(measureAndZoom, 300);
-                                    setTimeout(measureAndZoom, 700);
-                                }).catch(() => {
-                                    // se algo falhar, ainda tentamos medir algumas vezes
-                                    measureAndZoom();
-                                    setTimeout(measureAndZoom, 50);
-                                    setTimeout(measureAndZoom, 300);
-                                });
-                            }
-                        } catch (e) {
-                            console.warn('scale-for-one-page failed', e);
-                        }
-                        try {
-                            const last = clonedBody && clonedBody.lastElementChild;
-                            if (last && last.tagName === 'DIV' && last.textContent.trim().length === 0 && last.querySelectorAll('img').length === 0) {
-                                last.remove();
-                            }
-                        } catch (e) { /* ignore */ }
-
-                    } catch (e) {
-                        // não falha o processo se algo inesperado acontecer aqui
-                        console.warn('onclone sanitization error', e);
-                    }
-                }
-            },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // tenta o método moderno outputPdf('blob')
-        try {
-            if (window.html2pdf && typeof window.html2pdf === 'function' && typeof window.html2pdf().set === 'function' && typeof window.html2pdf().from === 'function') {
-            const blob = await window.html2pdf().set(opt).from(element).outputPdf('blob');
-            return blob;
-            }
-        } catch (err) {
-            console.warn('outputPdf falhou, tentando fallback...', err);
-        }
-
-        // fallback para versões antigas (0.9.x): gera e pega blob via Promise
-        return await new Promise((resolve, reject) => {
-            try {
-            window.html2pdf().set(opt).from(element).toPdf().output('blob', (blob) => {
-                if (blob) resolve(blob);
-                else reject(new Error('Falha ao obter blob (fallback).'));
-            });
-            } catch (e) {
-            reject(new Error('Erro ao gerar PDF (fallback): ' + e.message));
-            }
+    const ensureHtml2Canvas = async () => {
+        if (typeof html2canvas !== 'undefined') return;
+        return new Promise((res) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload = () => setTimeout(res, 50);
+        s.onerror = () => setTimeout(res, 50);
+        document.head.appendChild(s);
         });
-    }
+    };
 
-    function downloadPdfBlob(pdfBlob, filename = 'resultado-armario-perfeito.pdf') {
-    const url = URL.createObjectURL(pdfBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-    }
+    async function generatePdfForEstiloAndDownload(filename, nomeVal = '', emailVal = '') {
+            console.log("DEBUG: generatePdfForEstiloAndDownload chamado (fix-dup-nome-remove-botoes)");
+
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                alert('jsPDF não carregado.');
+                return;
+            }
+            if (window._pdfGenerating) {
+                console.warn('PDF já em geração');
+                return;
+            }
+            window._pdfGenerating = true;
+
+            const ensureHtml2Canvas = async () => {
+                if (typeof html2canvas !== 'undefined') return;
+                return new Promise((res) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                s.onload = () => setTimeout(res, 50);
+                s.onerror = () => setTimeout(res, 50);
+                document.head.appendChild(s);
+                });
+            };
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+                const margin = 36;
+                const pageW = doc.internal.pageSize.getWidth();
+                const pageH = doc.internal.pageSize.getHeight();
+                let cursorY = margin;
+
+                // coleta garantida do nome/email (valores reais do formulário)
+                const nome = nomeVal || document.getElementById('clientName')?.value || '';
+                const email = emailVal || document.getElementById('clientEmail')?.value || '';
+
+                // 1) tentar inserir logo no topo do PDF (se existir)
+                try {
+                const logoEl = document.querySelector('img[src*="logoredonda.png"]') || document.querySelector('.logo-top');
+                if (logoEl && logoEl.src) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = logoEl.src; });
+                    const maxLogoW = 140;
+                    const ratio = img.naturalWidth / img.naturalHeight || 1;
+                    const logoW = Math.min(maxLogoW, pageW - margin * 2);
+                    const logoH = logoW / ratio;
+                    const logoX = (pageW - logoW) / 2;
+                    doc.addImage(img, 'PNG', logoX, cursorY, logoW, logoH);
+                    cursorY += logoH + 8;
+                }
+                } catch (e) {
+                console.warn('Logo não inserida no PDF:', e);
+                }
+
+                // 2) tentar captura "print" da última tela com html2canvas
+                let previewAdded = false;
+                try {
+                await ensureHtml2Canvas();
+
+                if (typeof html2canvas !== 'undefined') {
+                    // localizar wrapper da última tela
+                    const selectors = ['#resultado-container', '#page4', '.resultado-final', '.resultado-wrapper', '.content-wrapper.active-section', '.resultado', 'final-resultado'];
+
+                    let wrapper = document.getElementById('final-resultado'); // Capture o seu div de resultado!
+                    if (!wrapper) {
+                        console.warn('Elemento #final-resultado não encontrado para gerar PDF.');
+                        return;
+                    }                    
+                    
+                    if (!wrapper) wrapper = document.body;
+
+                    // clona wrapper para captura e remove elementos que não devem aparecer
+                    const clone = wrapper.cloneNode(true);
+
+                    // remover botões/controles/ícones do clone (evita imagens de botões no rodapé)
+                    clone.querySelectorAll('button, input[type="button"], input[type="submit"], input[type="image"], .btn, .no-print, .controls, .footer, .footer-controls, .acoes').forEach(n => n.remove());
+
+                    // garantir que campos de formulário mantenham valores visíveis no clone
+                    clone.querySelectorAll('input, textarea').forEach(n => {
+                    const id = n.id;
+                    const name = n.name;
+                    let orig = null;
+                    if (id) orig = document.getElementById(id);
+                    if (!orig && name) orig = document.querySelector(`[name="${name}"]`);
+                    if (orig) {
+                        if (n.tagName.toLowerCase() === 'textarea') n.textContent = orig.value || '';
+                        else n.setAttribute('value', orig.value || '');
+                        if (orig.checked) n.setAttribute('checked', 'checked');
+                    }
+                    });
+
+                    // injetar nome/email somente no clone (evita duplicação textual no PDF)
+                    const infoDiv = document.createElement('div');
+                    infoDiv.style.cssText = 'font-size:14px; font-weight:600; text-align:center; margin-bottom:8px; color:#000;';
+                    infoDiv.textContent = `${nome}${nome && email ? ' — ' : ''}${email}`;
+                    clone.prepend(infoDiv);
+
+                    // offscreen container e render
+                    const off = document.createElement('div');
+                    off.style.position = 'fixed';
+                    off.style.left = '-9999px';
+                    off.style.top = '-9999px';
+                    off.style.width = Math.max(wrapper.offsetWidth, 800) + 'px';
+                    off.style.height = Math.max(wrapper.offsetHeight, 600) + 'px';
+                    off.appendChild(clone);
+                    document.body.appendChild(off);
+
+                    const canvas = await html2canvas(clone, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                    const dataUrl = canvas.toDataURL('image/png');
+                    document.body.removeChild(off);
+
+                    // desenhar captura no PDF
+                    const maxW = pageW - margin * 2;
+                    const img = new Image();
+                    img.src = dataUrl;
+                    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+                    const ratio = img.naturalWidth / img.naturalHeight || 1;
+                    let drawW = Math.min(maxW, img.naturalWidth * (72/96));
+                    let drawH = drawW / ratio;
+                    if (cursorY + drawH > pageH - margin) { doc.addPage(); cursorY = margin; }
+                    const x = (pageW - drawW) / 2;
+                    doc.addImage(dataUrl, 'PNG', x, cursorY, drawW, drawH);
+                    cursorY += drawH + 12;
+                    previewAdded = true;
+                }
+                } catch (e) {
+                console.warn('Falha na captura via html2canvas (seguir para fallback):', e);
+                }
+
+                // 3) fallback textual + imagem do resultado — só usado se captura falhar
+                if (!previewAdded) {
+                doc.setFontSize(12);
+                doc.text(`Nome: ${nome}`, margin, cursorY); cursorY += 16;
+                doc.text(`E-mail: ${email}`, margin, cursorY); cursorY += 18;
+                const resultado = document.getElementById('resultado-texto')?.innerText || '';
+                doc.text(`Resultado: ${resultado}`, margin, cursorY); cursorY += 18;
+
+                try {
+                    const imgEl = document.getElementById('imagem-resultado');
+                    if (imgEl && imgEl.src) {
+                    const tmp = new Image();
+                    tmp.crossOrigin = 'anonymous';
+                    await new Promise((res, rej) => { tmp.onload = res; tmp.onerror = rej; tmp.src = imgEl.src; });
+                    const maxW = pageW - margin * 2;
+                    const ratio2 = tmp.naturalWidth / tmp.naturalHeight || 1;
+                    let drawW = Math.min(maxW, tmp.naturalWidth * (72/96));
+                    let drawH = drawW / ratio2;
+                    if (cursorY + drawH > pageH - margin) { doc.addPage(); cursorY = margin; }
+                    const x = (pageW - drawW) / 2;
+                    const cv = document.createElement('canvas');
+                    cv.width = tmp.naturalWidth; cv.height = tmp.naturalHeight;
+                    cv.getContext('2d').drawImage(tmp, 0, 0);
+                    const data = cv.toDataURL('image/png');
+                    doc.addImage(data, 'PNG', x, cursorY, drawW, drawH);
+                    cursorY += drawH + 12;
+                    }
+                } catch (e) {
+                    console.warn('Erro ao inserir imagem do resultado (fallback):', e);
+                }
+
+                const descricao = document.querySelector('.resultado-descricao p')?.innerText || '';
+                if (descricao) {
+                    const lines = doc.splitTextToSize(descricao, pageW - margin * 2);
+                    if (cursorY + lines.length * 14 > pageH - margin) { doc.addPage(); cursorY = margin; }
+                    doc.text(lines, margin, cursorY);
+                    cursorY += lines.length * 14 + 8;
+                }
+                }
+
+                // rodapé
+                const footer = 'Gerado em: ' + new Date().toLocaleString();
+                doc.setFontSize(10);
+                doc.text(footer, margin, pageH - 28);
+
+                // preview em nova aba (blob) com fallback para salvar
+            
+            
+                // tentativa de download direto em mobile e preview em desktop
+                try {
+                const blob = doc.output('blob');
+                const url = URL.createObjectURL(blob);
+                const filenameToUse = filename || 'resultado.pdf';
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                const triggerAnchorDownload = (href, name) => {
+                    const a = document.createElement('a');
+                    a.href = href;
+                    a.download = name;
+                    // alguns navegadores móveis exigem append antes do click
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+
+                if (isMobile) {
+                    try {
+                    triggerAnchorDownload(url, filenameToUse);
+                    // liberar o objeto após curto delay
+                    setTimeout(() => URL.revokeObjectURL(url), 1500);
+                    } catch (e) {
+                    // fallback: abrir em nova aba se o download falhar
+                    window.open(url, '_blank');
+                    }
+                } else {
+                    // desktop: abrir preview em nova aba
+                    window.open(url, '_blank');
+                    // liberar depois
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                }
+                } catch (e) {
+                // último recurso: forçar download via jsPDF
+                try { doc.save(filename || 'resultado.pdf'); } catch (err) { console.error(err); }
+                }
+            } catch (err) {
+                console.error('generatePdfForEstiloAndDownload: erro:', err);
+            } finally {
+                window._pdfGenerating = false;
+            }
+}
