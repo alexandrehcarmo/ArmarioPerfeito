@@ -997,8 +997,31 @@
     sendModal.show();
     }
 
+
+    // Aguarda a logo estar carregada (evita PDF sem a imagem)
+    const waitForLogo = (timeout = 3000) => {
+        const imgs = Array.from(document.querySelectorAll('img.logo-topo'));
+        if (imgs.length === 0) return Promise.resolve();
+        return Promise.all(imgs.map(img => {
+            return new Promise(res => {
+                if (img.complete) return res();
+                img.addEventListener('load', () => res(), { once: true });
+                img.addEventListener('error', () => res(), { once: true });
+                // fallback timeout
+                setTimeout(res, timeout);
+            });
+        }));
+    };
+
+    // Exemplo de uso: esperar antes de chamar a rotina de geração
+    waitForLogo(3000).then(() => {
+        // aqui chama a sua função original que gera o PDF, ex:
+        generatePdfBlobFromElement(element);
+        // ou html2pdf().from(element)...
+        // mantenha sua chamada original aqui sem alteração.
+    });
+
     // Gera PDF do container #final-resultado em blob usando html2pdf (robusto)
-    // Gera PDF do container #final-resultado em blob usando html2pdf (robusto + sanitiza CSS problemático)
     async function generatePdfBlobFromElement(element) {
         if (!element) throw new Error('Elemento final-resultado não encontrado');
 
@@ -1118,15 +1141,38 @@
                                 /* Small adjustments only for the CLONE used to render PDF */
                                 html, body { height: auto !important; overflow: visible !important; margin: 0; padding: 8px; }
                                 body { font-size: 13px !important; line-height: 1.2 !important; color: #000 !important; }
+                                /* Title styling fallback — se for h1/h2/p com esse texto, será maior via JS abaixo */
+                                h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 20px !important; font-weight: 700 !important; margin-bottom: 12px !important; }
                                 h1,h2,h3,h4 { page-break-after: avoid !important; break-after: avoid !important; }
                                 p, ul, ol { page-break-inside: avoid !important; break-inside: avoid !important; }
-                                img, img.logo, .logo, img.logo-topo { max-width: 160px !important; height: auto !important; display: block !important; }
-                                /* se a LOGO for aplicada como background-image em um elemento .logo, garanta que apareça */
-                                .logo { background-size: contain !important; background-repeat: no-repeat !important; background-position: left top !important; min-height: 40px !important; }
+                                img, img.logo, img.logo-topo, .logo { max-width: 160px !important; height: auto !important; display: block !important; }                                
+                                .logo-topo { margin: 0 0 12px 0 !important; }
                                 .result-export-controls, #btn-download-pdf, #download-pdf { display: none !important; }
                                 * { box-sizing: border-box !important; -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
                             `;
                             if (head) head.appendChild(safetyStyle);
+                            // --- Ajustes finais no clone: centralizar título detectando o texto e destacar rótulos ---
+                            try {
+                                // centraliza e aumenta o título que contém "Diagnóstico de estilo finalizado"
+                                const possibleTitle = Array.from(clonedDoc.querySelectorAll('h1,h2,h3,p,div')).find(n => /Diagn[áa]stico de estilo finalizado/i.test(n.textContent));
+                                if (possibleTitle) {
+                                    possibleTitle.style.textAlign = 'center';
+                                    possibleTitle.style.fontSize = '20px';
+                                    possibleTitle.style.fontWeight = '700';
+                                    possibleTitle.style.marginBottom = '12px';
+                                }
+
+                                // realçar rótulos "Estilo Primário", "Estilo Secundário", "Estilo Terciário"
+                                ['Estilo Primário','Estilo Secundário','Estilo Terciário'].forEach(lbl => {
+                                    const node = Array.from(clonedDoc.querySelectorAll('*')).find(n => new RegExp('\\b' + lbl.replace(/ /g,'\\s+') + '\\b','i').test(n.textContent || ''));
+                                    if (node) {
+                                        node.style.fontSize = '16px';
+                                        node.style.fontWeight = '700';
+                                        node.style.marginTop = '10px';
+                                        node.style.marginBottom = '6px';
+                                    }
+                                });
+                            } catch (e) { /* não quebra se falhar */ }
                         } catch (e) { /* ignore */ }
 
                         // Ensure cloned html/body have no background gradients or large paddings that push an extra page
