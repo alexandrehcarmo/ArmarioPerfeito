@@ -1114,10 +1114,18 @@
                         // Inject a small safety style into the clone to avoid forced page-breaks or extra margins
                         try {
                             const safetyStyle = clonedDoc.createElement('style');
-                            safetyStyle.textContent = `html,body{height:auto!important;overflow:visible!important}
-                                .result-export-controls,#btn-download-pdf,#download-pdf{display:none!important}
-                                *{box-sizing:border-box!important}
-                                `;
+                            safetyStyle.textContent = `
+                                /* Small adjustments only for the CLONE used to render PDF */
+                                html, body { height: auto !important; overflow: visible !important; margin: 0; padding: 8px; }
+                                body { font-size: 13px !important; line-height: 1.2 !important; color: #000 !important; }
+                                h1,h2,h3,h4 { page-break-after: avoid !important; break-after: avoid !important; }
+                                p, ul, ol { page-break-inside: avoid !important; break-inside: avoid !important; }
+                                img, img.logo, .logo, img.logo-topo { max-width: 160px !important; height: auto !important; display: block !important; }
+                                /* se a LOGO for aplicada como background-image em um elemento .logo, garanta que apareça */
+                                .logo { background-size: contain !important; background-repeat: no-repeat !important; background-position: left top !important; min-height: 40px !important; }
+                                .result-export-controls, #btn-download-pdf, #download-pdf { display: none !important; }
+                                * { box-sizing: border-box !important; -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
+                            `;
                             if (head) head.appendChild(safetyStyle);
                         } catch (e) { /* ignore */ }
 
