@@ -474,19 +474,6 @@
                 return;
             }
 
-            // garante que logos/images com classe "logo-topo" estejam carregadas antes de renderizar
-            const waitForLogo = (timeout = 3000) => {
-                const imgs = Array.from(document.querySelectorAll('img.logo-topo'));
-                if (imgs.length === 0) return Promise.resolve();
-                return Promise.all(imgs.map(img => new Promise(res => {
-                    if (img.complete) return res();
-                    img.addEventListener('load', () => res(), { once: true });
-                    img.addEventListener('error', () => res(), { once: true });
-                    setTimeout(res, timeout);
-                })));
-            };
-            await waitForLogo(3000);
-
             // Opções robustas para html2pdf / html2canvas - force download (.save()) em vez de abrir print preview
             const opt = {
                 margin: [10,10,10,10], // mm-ish; ajuste se quiser
