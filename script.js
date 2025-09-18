@@ -1017,6 +1017,11 @@
                 // onclone sanitiza o documento clonado antes do html2canvas tentar parsear CSS
                 onclone: (clonedDoc) => {
                     try {
+                        // proteção: garante que o elemento original existe
+                        if (typeof element === 'undefined' || !element) {
+                            console.warn('onclone: elemento original (element) não encontrado — abortando sanitização do clone.');
+                            return;
+                        }
                         // pega lista de elementos do original e do clone na mesma ordem
                         const originals = element.querySelectorAll('*');
                         const clones = clonedDoc.querySelectorAll('*');
@@ -1062,19 +1067,42 @@
                         styleTags.forEach(st => {
                             try {
                                 // remove modern color functions and any page-break rules that can create blank pages
-                                st.textContent = st.textContent
-                                    .replace(/(?:color-mix\([^\)]*\)|color\([^\)]*\)|lab\([^\)]*\)|lch\([^\)]*\))/gi, '')
-                                    .replace(/page-break-(after|before):\s*always;?/gi, '')
-                                    .replace(/break-(after|before):\s*page;?/gi, '');
+                            st.textContent = st.textContent
+                                .replace(/(?:color-mix\([^\)]*\)|color\([^\)]*\)|lab\([^\)]*\)|lch\([^\)]*\))/gi, '')
+                                .replace(/page-break-(after|before):\s*always;?/gi, '')
+                                .replace(/break-(after|before):\s*page;?/gi, '')
+                                .replace(/@page[^{]*\{[^}]*\}/gi, '')              // remove regras @page
+                                .replace(/break-inside:\s*avoid;?/gi, '')         // remove avoid breaks
+                                .replace(/orphans:\s*\d+;?/gi, '')                // remove orphans
+                                .replace(/widows:\s*\d+;?/gi, '');                // remove widows
                             } catch (e) { /* ignore */ }
                         });
 
                         // Remove external stylesheets from the clone head (to avoid complex rules)
                         const head = clonedDoc.querySelector('head');
                         if (head) {
-                            head.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove());
+                            head.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+                                try {
+                                    const href = link.getAttribute('href') || '';
+                                    // preserve arquivos de fontes/external font providers (ex: googleapis, gstatic, woff, woff2, ttf)
+                                    if (/fonts\.googleapis|fonts\.gstatic|\.woff2?|\.ttf|\.otf/i.test(href)) {
+                                        // mantém link para carregar fontes (essencial para medidas corretas)
+                                        return;
+                                    }
+                                    // para outros estilos: em vez de remover, reduz seu impacto definindo media=print
+                                    // isso tende a manter fontes carregadas, mas reduz re-parsing de regras que podem quebrar html2canvas
+                                    try {
+                                        link.media = 'print';
+                                    } catch (e) {
+                                        // fallback: se não conseguimos ajustar media, removemos
+                                        link.remove();
+                                    }
+                                } catch (e) {
+                                    // se algo falhar aqui, não interrompe o processo
+                                    try { link.remove(); } catch (err) {}
+                                }
+                            });
                         }
-
                         // Remove the on-screen export controls (button) from the CLONE so they don't appear in the PDF
                         const hideSelectors = ['#btn-download-pdf', '#download-pdf', '.result-export-controls', '#btnGenerateAndSend'];
                         hideSelectors.forEach(sel => {
@@ -1110,45 +1138,86 @@
                         }
 
                         // --- Forçar escala para caber em 1 página (apenas no CLONE) ---
+                        // substituição segura: aguarda fonts, usa zoom (mais compatível com html2canvas) e retries
                         try {
-                            if (clonedBody) { // <<< garantia de existência
-                                // altura de página alvo em pixels (A4 portrait ~1122px @96dpi). Ajustável se necessário.
-                                // alteração sugerida para mobile mais agressivo (ex.: A4 comum -> valor menor)
-                                const pagePx = 900; // ou testar 900 se ainda vier 2 páginas
-                                // const pagePx = 1122;
+                            if (clonedBody) {
+                                // altura de página alvo em pixels (A4 portrait ~1122px @96dpi). Ajuste se necessário.
+                                let pagePx = 1122;
+                                // em mobile pode ser útil um valor um pouco menor:
+                                if (window && window.innerWidth && window.innerWidth < 500) pagePx = 1000;
                                 const marginPx = 40; // margens top+bottom reservadas
                                 const targetHeight = pagePx - marginPx;
 
-                                // se por algum motivo o clone ainda não tiver altura final, mede depois de pequenos timeouts
-                                const measureAndScale = () => {
-                                    const bodyH = clonedBody.scrollHeight || clonedBody.offsetHeight || clonedDoc.documentElement.scrollHeight;
-                                    if (bodyH && bodyH > 0 && bodyH > targetHeight) {
-                                        const scale = targetHeight / bodyH;
-                                        // aplica escala e garante origem no topo/esquerda
-                                        clonedBody.style.transformOrigin = 'top left';
-                                        clonedBody.style.transform = `scale(${scale})`;
-                                        // ajusta largura para compensar o scale (evita overflow horizontal)
-                                        clonedBody.style.width = `${100 / scale}%`;
-                                        // reduz espaçamentos que ajudam a criar nova página
+                                // função que mede e aplica zoom (usa clonedDoc.documentElement para leituras corretas)
+                                const measureAndZoom = () => {
+                                    try {
+                                        // limpa qualquer transform anterior que possa atrapalhar a medição
+                                        clonedBody.style.transform = '';
+                                        clonedBody.style.transformOrigin = '';
+                                        // mede altura do clone
+                                        const bodyH = clonedBody.scrollHeight || clonedBody.offsetHeight || clonedDoc.documentElement.scrollHeight || 0;
+                                        if (bodyH > 0 && bodyH > targetHeight) {
+                                            const scale = targetHeight / bodyH;
+                                            // aplica zoom (mais estável que transform para html2canvas)
+                                        // tenta aplicar zoom; se não suportado, aplica transform de forma controlada
+                                        if ('zoom' in clonedBody.style) {
+                                            // aplica zoom e garante que qualquer transform anterior seja removido
+                                            clonedBody.style.zoom = scale;
+                                            clonedBody.style.transform = '';
+                                            clonedBody.style.transformOrigin = '';
+                                        } else {
+                                            // fallback: transform — aplicamos apenas se zoom não existe
+                                            clonedBody.style.transformOrigin = 'top left';
+                                            clonedBody.style.transform = `scale(${scale})`;
+                                            // garante que zoom não permaneça (segurança)
+                                            clonedBody.style.zoom = '';
+                                        }
+                                        // remove espaçamentos que empurram nova página
                                         clonedBody.style.padding = '0';
                                         clonedBody.style.margin = '0';
-                                    } else {
-                                        // garante estado normal quando não precisa escalar
-                                        clonedBody.style.transform = '';
-                                        clonedBody.style.width = '';
+                                        // garante largura compatível
+                                        clonedBody.style.width = `${100 / (scale || 1)}%`;
+                                        } else {
+                                            // restaura estado normal (limpa zoom/transform/padding/margin/width)
+                                            clonedBody.style.zoom = '';
+                                            clonedBody.style.transform = '';
+                                            clonedBody.style.transformOrigin = '';
+                                            clonedBody.style.width = '';
+                                            clonedBody.style.padding = '';
+                                            clonedBody.style.margin = '';
+                                        }
+                                    } catch (e) {
+                                        console.warn('measureAndZoom error', e);
                                     }
                                 };
 
-                                // tenta medir agora; mede novamente após 50ms e 300ms para garantir estabilidade em mobiles
-                                measureAndScale();
-                                setTimeout(measureAndScale, 50);
-                                setTimeout(measureAndScale, 300);
+                                // se o navegador suporta Font Loading API, aguarda fonts (melhora medidas em webfonts)
+                                const waitFonts = (timeout = 1200) => {
+                                    if (document && document.fonts && typeof document.fonts.ready !== 'undefined') {
+                                        return Promise.race([
+                                            document.fonts.ready,
+                                            new Promise(resolve => setTimeout(resolve, timeout))
+                                        ]);
+                                    }
+                                    return new Promise(resolve => setTimeout(resolve, timeout));
+                                };
+
+                                // roda medida/zoom após aguardar fonts e com múltiplos retries (mobile stability)
+                                waitFonts().then(() => {
+                                    measureAndZoom();
+                                    setTimeout(measureAndZoom, 50);
+                                    setTimeout(measureAndZoom, 300);
+                                    setTimeout(measureAndZoom, 700);
+                                }).catch(() => {
+                                    // se algo falhar, ainda tentamos medir algumas vezes
+                                    measureAndZoom();
+                                    setTimeout(measureAndZoom, 50);
+                                    setTimeout(measureAndZoom, 300);
+                                });
                             }
                         } catch (e) {
-                            // não interrompe o processo se algo falhar
                             console.warn('scale-for-one-page failed', e);
                         }
-                        // Remove elements that are effectively empty at the end of the document which can create blank pages
                         try {
                             const last = clonedBody && clonedBody.lastElementChild;
                             if (last && last.tagName === 'DIV' && last.textContent.trim().length === 0 && last.querySelectorAll('img').length === 0) {
