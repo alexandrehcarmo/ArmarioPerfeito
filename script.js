@@ -461,29 +461,58 @@
         return array;
     }
 
-    async function handleDownload() {
+    // ---------- Substitua a função handleDownload existente por esta versão robusta ----------
+    async function handleDownload(event) {
         try {
-            const finalEl = document.getElementById('final-resultado');
-            if (!finalEl) throw new Error('Elemento #final-resultado não encontrado');
+            // evita ações padrão de botões/links
+            if (event && typeof event.preventDefault === 'function') event.preventDefault();
 
-            // Gera blob via html2pdf (usa sua função robusta)
-            // const blob = await generatePdfBlobFromElement(finalEl);
-            
-            const blob = await waitForLogo(3000).then(() => generatePdfBlobFromElement(element));
+            // seletor tolerante para encontrar o elemento que queremos transformar em PDF
+            const element = document.querySelector('#final-resultado, #resultado, .resultado, .final-results, .result, #main') || document.querySelector('body');
+            if (!element) {
+                console.error('handleDownload erro: elemento alvo para PDF não encontrado.');
+                return;
+            }
 
+            // garante que logos/images com classe "logo-topo" estejam carregadas antes de renderizar
+            const waitForLogo = (timeout = 3000) => {
+                const imgs = Array.from(document.querySelectorAll('img.logo-topo'));
+                if (imgs.length === 0) return Promise.resolve();
+                return Promise.all(imgs.map(img => new Promise(res => {
+                    if (img.complete) return res();
+                    img.addEventListener('load', () => res(), { once: true });
+                    img.addEventListener('error', () => res(), { once: true });
+                    setTimeout(res, timeout);
+                })));
+            };
+            await waitForLogo(3000);
 
-            const filename = `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`;
-            downloadPdfBlob(blob, filename);
+            // Opções robustas para html2pdf / html2canvas - force download (.save()) em vez de abrir print preview
+            const opt = {
+                margin: [10,10,10,10], // mm-ish; ajuste se quiser
+                filename: 'diagnostico-armario-perfeito.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    useCORS: true,
+                    allowTaint: false,
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0,
+                    scale: (window.devicePixelRatio || 1) * 1.5
+                },
+                jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' } // 'pt' evita redimensões estranhas
+            };
+
+            // Gerar e SALVAR — .save() faz download e NÃO abre janela de print por padrão
+            await html2pdf().set(opt).from(element).save();
+
+            console.log('handleDownload: PDF gerado com sucesso.');
         } catch (err) {
             console.error('handleDownload erro:', err);
-            // fallback: abre a janela de print (usuário pode salvar como PDF)
-            try {
-            createPrintViewAndPrint(document.getElementById('final-resultado'));
-            } catch (e) {
-            alert('Erro ao gerar PDF. Veja console para detalhes.');
-            }
         }
     }
+    // ---------- fim do bloco handleDownload ----------
+
 
     function displayFinalResults() {
         const finalDiv = document.getElementById('final-resultado');
