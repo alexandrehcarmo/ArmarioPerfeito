@@ -430,6 +430,9 @@
             const btn = ev.target.closest && ev.target.closest('#btn-download-pdf');
             if (!btn) return;
             ev.preventDefault();
+            ev.stopPropagation(); // Garante que apenas este listener age no clique do botão
+            // Em vez de gerar o PDF direto, abre o modal para coletar nome/email
+            openSendModalPrefill(); 
             // Chama o handleDownload que agora usa a lógica do BIOTIPO
             if (typeof handleDownload === 'function') {
                 try { handleDownload(); } catch (e) { console.error('handleDownload erro (fallback):', e); }
@@ -905,17 +908,6 @@
             }
             window._pdfGenerating = true;
 
-            const ensureHtml2Canvas = async () => {
-                if (typeof html2canvas !== 'undefined') return;
-                return new Promise((res) => {
-                const s = document.createElement('script');
-                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                s.onload = () => setTimeout(res, 50);
-                s.onerror = () => setTimeout(res, 50);
-                document.head.appendChild(s);
-                });
-            };
-
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -1112,3 +1104,33 @@
                 window._pdfGenerating = false;
             }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Certifique-se que o modal sendModal está inicializado
+    const sendModalEl = document.getElementById('send-result-modal');
+    const sendModal = sendModalEl ? new bootstrap.Modal(sendModalEl) : null;
+
+    const modalSendButton = document.getElementById('modal-send-button'); 
+
+    if (modalSendButton) {
+        modalSendButton.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+
+            // Esconde o modal antes de gerar o PDF
+            if (sendModal) {
+                sendModal.hide();
+            }
+
+            // Salva os valores digitados no sessionStorage (opcional, mas boa prática)
+            const nameInput = document.getElementById('sendName');
+            const emailInput = document.getElementById('sendEmail');
+            if (nameInput) sessionStorage.setItem('ap_name', nameInput.value);
+            if (emailInput) sessionStorage.setItem('ap_email', emailInput.value);
+
+            // Chama a função que realmente gera e baixa o PDF
+            // handleDownload já lê os valores de sendName e sendEmail
+            await handleDownload(); 
+        });
+    }
+});
