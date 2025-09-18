@@ -5,20 +5,6 @@
     let perguntaAtualIndice = -1;
     let faseAtual = 1;
 
-    // helper: aguarda imagens de logo carregarem antes de gerar o PDF
-    function waitForLogo(timeout = 3000) {
-        const imgs = Array.from(document.querySelectorAll('img.logo-topo'));
-        if (imgs.length === 0) return Promise.resolve();
-        return Promise.all(imgs.map(img => {
-            return new Promise(res => {
-                if (img.complete) return res();
-                img.addEventListener('load', () => res(), { once: true });
-                img.addEventListener('error', () => res(), { once: true });
-                setTimeout(res, timeout);
-            });
-        }));
-    }
-
     /* ====== Robust loader for html2pdf (definitive fix) ====== */
     async function loadScriptOnce(url, id) {
     if (id && document.getElementById(id)) return; // já carregado
@@ -461,45 +447,26 @@
         return array;
     }
 
-    // ---------- Substitua a função handleDownload existente por esta versão robusta ----------
-    async function handleDownload(event) {
+    async function handleDownload() {
         try {
-            // evita ações padrão de botões/links
-            if (event && typeof event.preventDefault === 'function') event.preventDefault();
+            const finalEl = document.getElementById('final-resultado');
+            if (!finalEl) throw new Error('Elemento #final-resultado não encontrado');
 
-            // seletor tolerante para encontrar o elemento que queremos transformar em PDF
-            const element = document.querySelector('#final-resultado, #resultado, .resultado, .final-results, .result, #main') || document.querySelector('body');
-            if (!element) {
-                console.error('handleDownload erro: elemento alvo para PDF não encontrado.');
-                return;
-            }
+            // Gera blob via html2pdf (usa sua função robusta)
+            const blob = await generatePdfBlobFromElement(finalEl);
 
-            // Opções robustas para html2pdf / html2canvas - force download (.save()) em vez de abrir print preview
-            const opt = {
-                margin: [10,10,10,10], // mm-ish; ajuste se quiser
-                filename: 'diagnostico-armario-perfeito.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    useCORS: true,
-                    allowTaint: false,
-                    logging: false,
-                    scrollX: 0,
-                    scrollY: 0,
-                    scale: (window.devicePixelRatio || 1) * 1.5
-                },
-                jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' } // 'pt' evita redimensões estranhas
-            };
-
-            // Gerar e SALVAR — .save() faz download e NÃO abre janela de print por padrão
-            await html2pdf().set(opt).from(element).save();
-
-            console.log('handleDownload: PDF gerado com sucesso.');
+            const filename = `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`;
+            downloadPdfBlob(blob, filename);
         } catch (err) {
             console.error('handleDownload erro:', err);
+            // fallback: abre a janela de print (usuário pode salvar como PDF)
+            try {
+            createPrintViewAndPrint(document.getElementById('final-resultado'));
+            } catch (e) {
+            alert('Erro ao gerar PDF. Veja console para detalhes.');
+            }
         }
     }
-    // ---------- fim do bloco handleDownload ----------
-
 
     function displayFinalResults() {
         const finalDiv = document.getElementById('final-resultado');
@@ -973,10 +940,7 @@
         if (!finalEl) { alert('Elemento final não encontrado'); return; }
         try {
         if (typeof generatePdfBlobFromElement === 'function') {
-            
-            // const blob = await generatePdfBlobFromElement(finalEl);
-            const blob = await waitForLogo(3000).then(() => generatePdfBlobFromElement(element));
-
+            const blob = await generatePdfBlobFromElement(finalEl);
             downloadPdfBlob(blob, `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,10)}.pdf`);
         } else {
             createPrintViewAndPrint(finalEl);
@@ -1032,6 +996,30 @@
     if (sessionStorage.getItem('ap_email')) emailInput.value = sessionStorage.getItem('ap_email');
     sendModal.show();
     }
+
+
+    // Aguarda a logo estar carregada (evita PDF sem a imagem)
+    const waitForLogo = (timeout = 3000) => {
+        const imgs = Array.from(document.querySelectorAll('img.logo-topo'));
+        if (imgs.length === 0) return Promise.resolve();
+        return Promise.all(imgs.map(img => {
+            return new Promise(res => {
+                if (img.complete) return res();
+                img.addEventListener('load', () => res(), { once: true });
+                img.addEventListener('error', () => res(), { once: true });
+                // fallback timeout
+                setTimeout(res, timeout);
+            });
+        }));
+    };
+
+    // Exemplo de uso: esperar antes de chamar a rotina de geração
+    waitForLogo(3000).then(() => {
+        // aqui chama a sua função original que gera o PDF, ex:
+        generatePdfBlobFromElement(element);
+        // ou html2pdf().from(element)...
+        // mantenha sua chamada original aqui sem alteração.
+    });
 
     // Gera PDF do container #final-resultado em blob usando html2pdf (robusto)
     async function generatePdfBlobFromElement(element) {
@@ -1096,30 +1084,6 @@
                                 } catch (e) { /* ignore per-element sanitize failures */ }
                             }
                         }
-
-                        // === Garantir que <img> originais sejam corretamente transferidas para os clones ===
-                        try {
-                            const origImgs = element.querySelectorAll('img');
-                            origImgs.forEach((oImg) => {
-                                // tenta localizar o clone correspondente pelo src ou alt (fallback robusto)
-                                const selector = `img[src="${oImg.getAttribute('src')}"], img[alt="${(oImg.getAttribute('alt')||'').replace(/"/g,'\\"')}"]`;
-                                const cImg = clonedDoc.querySelector(selector) || Array.from(clonedDoc.querySelectorAll('img')).find(i => {
-                                    // fallback por proximidade: compara largura/height aproximada
-                                    return i.alt === oImg.alt || (oImg.src && i.src && i.src.includes(oImg.src.split('/').pop()));
-                                });
-                                if (cImg) {
-                                    try {
-                                        // força src (garante que clone tem o mesmo link) e configura carregamento imediato
-                                        cImg.src = oImg.src;
-                                        if (oImg.getAttribute('crossorigin')) cImg.setAttribute('crossorigin', oImg.getAttribute('crossorigin'));
-                                        cImg.style.display = 'block';
-                                        cImg.style.maxWidth = '160px';
-                                        cImg.style.height = 'auto';
-                                        cImg.loading = 'eager';
-                                    } catch(e){}
-                                }
-                            });
-                        } catch(e){}
 
                         // --- sanitize <style> tags inside the cloned document (remove unsupported functions and page-breaks) ---
                         const styleTags = clonedDoc.querySelectorAll('style');
@@ -1190,16 +1154,14 @@
                             // --- Ajustes finais no clone: centralizar título detectando o texto e destacar rótulos ---
                             try {
                                 // centraliza e aumenta o título que contém "Diagnóstico de estilo finalizado"
-                                // centraliza e aumenta o título que contém palavras-chave (detecção mais tolerante)
-                                const possibleTitle = Array.from(clonedDoc.querySelectorAll('h1,h2,h3,p,div')).find(n => /Diagn.*estil.*finaliz/i.test((n.textContent||'').replace(/\s+/g,' ')));
+                                const possibleTitle = Array.from(clonedDoc.querySelectorAll('h1,h2,h3,p,div')).find(n => /Diagn[áa]stico de estilo finalizado/i.test(n.textContent));
                                 if (possibleTitle) {
                                     possibleTitle.style.textAlign = 'center';
                                     possibleTitle.style.fontSize = '20px';
                                     possibleTitle.style.fontWeight = '700';
                                     possibleTitle.style.marginBottom = '12px';
-                                    // se for um <p>, transforma visualmente como título (não altera HTML)
-                                    if (possibleTitle.tagName.toLowerCase() === 'p') possibleTitle.classList.add('diagnostico-title');
                                 }
+
                                 // realçar rótulos "Estilo Primário", "Estilo Secundário", "Estilo Terciário"
                                 ['Estilo Primário','Estilo Secundário','Estilo Terciário'].forEach(lbl => {
                                     const node = Array.from(clonedDoc.querySelectorAll('*')).find(n => new RegExp('\\b' + lbl.replace(/ /g,'\\s+') + '\\b','i').test(n.textContent || ''));
@@ -1311,15 +1273,9 @@
                             console.warn('scale-for-one-page failed', e);
                         }
                         try {
-                           const clonedBody = clonedDoc.querySelector('body');
-                            if (clonedBody) {
-                                // remover espaçadores em branco finais
-                                while (clonedBody.lastElementChild && clonedBody.lastElementChild.textContent.trim() === '' && clonedBody.lastElementChild.querySelectorAll('img').length === 0) {
-                                    clonedBody.lastElementChild.remove();
-                                }
-                                // também reduzir margens finais que podem empurrar página extra
-                                clonedBody.style.marginBottom = '0';
-                                clonedBody.style.paddingBottom = '0';
+                            const last = clonedBody && clonedBody.lastElementChild;
+                            if (last && last.tagName === 'DIV' && last.textContent.trim().length === 0 && last.querySelectorAll('img').length === 0) {
+                                last.remove();
                             }
                         } catch (e) { /* ignore */ }
 
