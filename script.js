@@ -561,8 +561,11 @@
             // remove listeners antigos (caso já tenham sido ligados em execuções anteriores)
             const clone = pdfBtn.cloneNode(true);
             pdfBtn.parentNode.replaceChild(clone, pdfBtn);
-            clone.addEventListener('click', handleDownload);
-
+            clone.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();   // evita que o listener global em document capture este clique - ADICIONADO 18/09
+                handleDownload();
+            });
         }
 
     }
@@ -1008,60 +1011,117 @@
             filename:     `Resultado_ArmarioPerfeito.pdf`,
             image:        { type: 'jpeg', quality: 0.95 },
             html2canvas:  { 
-            scale: 2, 
-            useCORS: true, 
-            logging: false,
-            // onclone sanitiza o documento clonado antes do html2canvas tentar parsear CSS
-            onclone: (clonedDoc) => {
-                try {
-                // pega lista de elementos do original e do clone na mesma ordem
-                const originals = element.querySelectorAll('*');
-                const clones = clonedDoc.querySelectorAll('*');
+                scale: 2, 
+                useCORS: true, 
+                logging: false,
+                // onclone sanitiza o documento clonado antes do html2canvas tentar parsear CSS
+                onclone: (clonedDoc) => {
+                    try {
+                        // pega lista de elementos do original e do clone na mesma ordem
+                        const originals = element.querySelectorAll('*');
+                        const clones = clonedDoc.querySelectorAll('*');
 
-                const len = Math.min(originals.length, clones.length);
-                for (let i = 0; i < len; i++) {
-                    const o = originals[i];
-                    const c = clones[i];
-                    if (!o || !c) continue;
+                        const len = Math.min(originals.length, clones.length);
+                        for (let i = 0; i < len; i++) {
+                            const o = originals[i];
+                            const c = clones[i];
+                            if (!o || !c) continue;
 
-                    const cs = window.getComputedStyle(o);
+                            const cs = window.getComputedStyle(o);
 
-                    // força valores seguros (resolvidos pelo navegador)
-                    if (cs.color) c.style.color = cs.color;
-                    if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') {
-                    c.style.backgroundColor = cs.backgroundColor;
-                    } else {
-                    c.style.backgroundColor = '#ffffff';
+                            // força valores seguros (resolvidos pelo navegador)
+                            if (cs.color) c.style.color = cs.color;
+                            if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                                c.style.backgroundColor = cs.backgroundColor;
+                            } else {
+                                c.style.backgroundColor = '#ffffff';
+                            }
+
+                            // desativa imagens/gradientes problemáticos no clone e aplica fallback
+                            c.style.backgroundImage = 'none';
+                            c.style.boxShadow = 'none';
+
+                            // bordas e sombras
+                            if (cs.borderColor) c.style.borderColor = cs.borderColor;
+
+                            // remove filtros e propriedades que costumam quebrar o parser
+                            c.style.filter = 'none';
+                            c.style.backdropFilter = 'none';
+
+                            // --- sanitize inline style text that can contain modern color functions ---
+                            const inline = c.getAttribute && c.getAttribute('style');
+                            if (inline && /(?:color-mix|color\(|lab\(|lch\()/i.test(inline)) {
+                                try {
+                                    c.setAttribute('style', inline.replace(/(?:color-mix\([^\)]*\)|color\([^\)]*\)|lab\([^\)]*\)|lch\([^\)]*\))/gi, ''));
+                                } catch (e) { /* ignore per-element sanitize failures */ }
+                            }
+                        }
+
+                        // --- sanitize <style> tags inside the cloned document (remove unsupported functions and page-breaks) ---
+                        const styleTags = clonedDoc.querySelectorAll('style');
+                        styleTags.forEach(st => {
+                            try {
+                                // remove modern color functions and any page-break rules that can create blank pages
+                                st.textContent = st.textContent
+                                    .replace(/(?:color-mix\([^\)]*\)|color\([^\)]*\)|lab\([^\)]*\)|lch\([^\)]*\))/gi, '')
+                                    .replace(/page-break-(after|before):\s*always;?/gi, '')
+                                    .replace(/break-(after|before):\s*page;?/gi, '');
+                            } catch (e) { /* ignore */ }
+                        });
+
+                        // Remove external stylesheets from the clone head (to avoid complex rules)
+                        const head = clonedDoc.querySelector('head');
+                        if (head) {
+                            head.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove());
+                        }
+
+                        // Remove the on-screen export controls (button) from the CLONE so they don't appear in the PDF
+                        const hideSelectors = ['#btn-download-pdf', '#download-pdf', '.result-export-controls', '#btnGenerateAndSend'];
+                        hideSelectors.forEach(sel => {
+                            try {
+                                clonedDoc.querySelectorAll(sel).forEach(n => n.remove());
+                            } catch (e) { /* ignore */ }
+                        });
+
+                        // Inject a small safety style into the clone to avoid forced page-breaks or extra margins
+                        try {
+                            const safetyStyle = clonedDoc.createElement('style');
+                            safetyStyle.textContent = `html,body{height:auto!important;overflow:visible!important}
+                                .result-export-controls,#btn-download-pdf,#download-pdf{display:none!important}
+                                *{box-sizing:border-box!important}
+                                `;
+                            if (head) head.appendChild(safetyStyle);
+                        } catch (e) { /* ignore */ }
+
+                        // Ensure cloned html/body have no background gradients or large paddings that push an extra page
+                        const clonedHtml = clonedDoc.querySelector('html');
+                        const clonedBody = clonedDoc.querySelector('body');
+                        if (clonedHtml) {
+                            clonedHtml.style.backgroundImage = 'none';
+                            clonedHtml.style.backgroundColor = '#ffffff';
+                            clonedHtml.style.height = 'auto';
+                        }
+                        if (clonedBody) {
+                            clonedBody.style.backgroundImage = 'none';
+                            clonedBody.style.backgroundColor = '#ffffff';
+                            clonedBody.style.height = 'auto';
+                            clonedBody.style.paddingBottom = '0px';
+                            clonedBody.style.overflow = 'visible';
+                        }
+
+                        // Remove elements that are effectively empty at the end of the document which can create blank pages
+                        try {
+                            const last = clonedBody && clonedBody.lastElementChild;
+                            if (last && last.tagName === 'DIV' && last.textContent.trim().length === 0 && last.querySelectorAll('img').length === 0) {
+                                last.remove();
+                            }
+                        } catch (e) { /* ignore */ }
+
+                    } catch (e) {
+                        // não falha o processo se algo inesperado acontecer aqui
+                        console.warn('onclone sanitization error', e);
                     }
-
-                    // desativa imagens/gradientes problemáticos no clone e aplica fallback
-                    c.style.backgroundImage = 'none';
-                    c.style.boxShadow = 'none';
-
-                    // bordas e sombras
-                    if (cs.borderColor) c.style.borderColor = cs.borderColor;
-
-                    // remove filtros e propriedades que costumam quebrar o parser
-                    c.style.filter = 'none';
-                    c.style.backdropFilter = 'none';
                 }
-
-                // também limpar estilos do <html> e <body> clonados que possam conter gradientes
-                const clonedHtml = clonedDoc.querySelector('html');
-                const clonedBody = clonedDoc.querySelector('body');
-                if (clonedHtml) {
-                    clonedHtml.style.backgroundImage = 'none';
-                    clonedHtml.style.backgroundColor = '#ffffff';
-                }
-                if (clonedBody) {
-                    clonedBody.style.backgroundImage = 'none';
-                    clonedBody.style.backgroundColor = '#ffffff';
-                }
-                } catch (e) {
-                // não falha o processo se algo inesperado acontecer aqui
-                console.warn('onclone sanitization error', e);
-                }
-            }
             },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };

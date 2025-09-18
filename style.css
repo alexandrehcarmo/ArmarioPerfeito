@@ -128,8 +128,6 @@
     .pergunta-container, .intro-page {
         display: none;
         animation: fadeInSlideUp 0.6s ease-out forwards;
-        /* garante espaçamento quando elemento for scrolled into view (protege do cabeçalho sticky) */
-        scroll-margin-top: 90px;
     }
     .pergunta-container.active, .intro-page.active {
         display: block;
