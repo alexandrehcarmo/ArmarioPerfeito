@@ -646,11 +646,11 @@
                 }).catch(err => {
                     console.warn('html2pdf falhou, fallback para abrir print:', err);
                     // fallback: tenta abrir print normal (menos confiável em mobile)
-                    openPrintWindowFallback(printHTML);
+                    console.error('Falha ao salvar PDF em mobile.');
                 });
             } catch (err) {
                 console.error('Erro ao usar html2pdf:', err);
-                openPrintWindowFallback(printHTML);
+                console.error('Falha ao salvar PDF em mobile.');
             }
             return;
         }
