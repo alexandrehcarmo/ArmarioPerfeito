@@ -47,6 +47,7 @@
 
     function initQuiz() {
         phaseResultModal = new bootstrap.Modal(document.getElementById('phase-result-modal'));
+        document.getElementById('modal-continue-btn').addEventListener('click', continueToNextPhase); // Correção: proceedToNextStep() é chamado por continueToNextPhase()
         document.getElementById('quiz-section').style.display = 'none';
         document.getElementById('final-resultado').style.display = 'none';
         showIntroPage();
