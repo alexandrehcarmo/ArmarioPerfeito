@@ -1,0 +1,651 @@
+    html {
+        box-sizing: border-box;
+        scrollbar-width: none; /* Esconde a barra de rolagem (Firefox)*/
+        margin: 0 !important;   /*Garante que não haja margem externa */
+        padding: 0 !important;  /* Garante que não haja padding externo */
+        overflow-x: hidden !important; /* Super-garantia contra rolagem horizontal */
+        scroll-padding-top: 104px !important;
+    }
+
+    /* Melhor esconder scrollbar no Chrome/Safari:  */
+      body::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Regra para herdar box-sizing para todos os elementos */
+    *, *::before, *::after {
+        box-sizing: inherit;
+    }
+
+    html::-webkit-scrollbar {
+        width: 0px;  /* Define a largura como 0 para torná-la invisível */
+        background: transparent;  /* Garante que não haja fundo visível */
+    }
+
+    body { background-color: var(--brand-neutral-light); /*  Usará o novo bege */
+        font-family: var(--font-body); /*  Usará Poppins */
+        padding-bottom: 50px;
+        color: var(--brand-neutral-dark); /* Usará o novo preto */
+        max-width: 1200px; /*  Limita a largura máxima do corpo da página */
+        margin-left: auto; /*  Centraliza o corpo da página */
+        margin-right: auto; /*  Centraliza o corpo da página */
+        box-shadow: 0 0 30px rgba(0,0,0,0.05); /* Uma sombra suave para dar profundidade ao "card" principal do site */
+        padding-top: 60px; /*  Altura do seu cabeçalho fixo  */
+        overflow-x: hidden !important;/*  Previne rolagem horizontal */
+        -ms-overflow-style: none;
+        padding-top: 70px; /* Para corresponder à altura padrão do cabeçalho */
+    }
+
+    .intro-page {
+        padding: 40px !important; /*  Aumenta o padding interno para dar mais "ar" */
+        border-radius: 15px; /* Cantos arredondados para um visual mais suave */
+    }
+
+    /* Definido mb-4 para a logo, adicionado mais para o h1  - título "Descubra seu estilo!"*/
+    .intro-page h1 {
+        margin-bottom: 1.5rem !important; /*  Mais espaço abaixo do título principal */
+        font-weight: 800; /* Mais impactante, se houver o peso na fonte */
+        font-size: 1.5rem; /*  Um pouco menor, para melhor encaixe na página */
+        line-height: 1.2; /*  Espaçamento entre linhas do título */
+        color: var(--brand-neutral-dark); /*  Usar a cor preta */
+        text-align: center; 
+        margin-top: 10px;
+    }
+
+    /* Para o subtítulo  */
+    .intro-page h3.card-title { /*  h3 com card-title */
+        font-weight: 700; /*  Negrito para destaque */
+        font-size: 1.3rem; /* Tamanho adequado para subtítulo */
+        margin-bottom: 0.8rem !important; /*  Espaço abaixo do subtítulo */
+        color: var(--brand-neutral-dark); /*  Usar o preto da cliente */
+    }
+
+    /* Regra específica para .intro-page .card-text com fonte menor. */
+    .intro-page .card-text {
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    /* Para o corpo do texto */
+    .intro-page .card-text {
+        font-size: 1rem; /* Tamanho padrão para legibilidade (16px) */
+        line-height: 1.8; /*  Aumenta o espaçamento entre linhas */
+        color: var(--brand-neutral-dark); /*  Usar o preto da cliente */
+        text-align: left !important; /*  Alinhamento à esquerda */
+    }
+
+    :root {
+        /* Cores da Marca (AJUSTADAS CONFORME CLIENTE) */
+        --brand-primary: #6A214C; /* Roxo Escuro / Vinho (Mantido do manual, não houve conflito) */
+        --brand-secondary: #F7B500; /* Amarelo Ouro (Mantido do manual) */
+        --brand-tertiary: #00A896; /* Verde Água (Mantido do manual) */
+        --brand-neutral-light: #f6f0e9; /* Cor bege do cliente */
+        --brand-neutral-dark: #0e0e0e; /* Cor preta do cliente */
+        --brand-neutral-medium: #CCCCCC; /* Cinza Claro para bordas (Mantido do manual) */
+        /* Fontes da Marca (AJUSTADAS CONFORME CLIENTE) */
+        --font-heading: 'Poppins', sans-serif; /*  Poppins para títulos */
+        --font-body: 'Poppins', sans-serif;    /* Poppins para corpo do texto */
+    }
+
+    .quiz-img {
+        max-width: 100%;
+        aspect-ratio: 1/1; 
+        object-fit: contain;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        cursor: pointer;
+        margin: 0 auto;
+        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        padding: 0 !important;
+        min-height: 350px !important; /* Define uma altura mínima para o contêiner da imagem. Visando um equilíbrio visual. */
+        display: flex; /* Ativa o flexbox para centralizar a imagem */
+        justify-content: center; /* Centraliza horizontalmente o item flex (a imagem) */
+        align-items: center; /* Centraliza verticalmente o item flex (a imagem) */        
+        height: auto; /* Mantém a proporção da imagem */
+        width: auto;
+        height: auto;
+        max-height: auto;
+    }
+
+    .quiz-img:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+    }
+
+    .quiz-img.selected {
+        border-color: var(--brand-secondary); /*  Usar cor secundária da marca */
+        box-shadow: 0 0 25px rgba(247, 181, 0, 0.5); /*  Usar RGBA da cor secundária */
+        transform: scale(1.03);
+    }
+    
+    .quiz-img span {
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .pergunta-container, .intro-page {
+        display: none;
+        animation: fadeInSlideUp 0.6s ease-out forwards;
+    }
+    .pergunta-container.active, .intro-page.active {
+        display: block;
+    }
+
+    .navigation-buttons button.btn-primary { /* Botão "Próximo" */
+        min-width: 200px; /*  Largura mínima para o botão */
+        padding: 15px 30px !important; /* Padding maior para um botão mais "clicável" */
+        font-size: 1.2rem !important; /*  Fonte maior para melhor leitura */
+        border-radius: 8px; /*  Cantos arredondados, conforme padrão da marca */
+        font-weight: 600; /*  Fonte semi-bold */
+    }
+
+    .navigation-buttons { 
+        margin-top: 30px; 
+        display: flex; /* Flexbox para alinhar os botões */
+        align-items: stretch; /* Garante que todos os botões tenham a mesma altura */
+        justify-content: space-between; /* Alinha "Voltar" à esquerda e "Próxima Pergunta" à direita, o que condiz com o HTML d-flex justify-content-between */
+        gap: 8px; /* Espaçamento entre os botões: Reduz o espaçamento entre os botões para telas menores, se necessário */
+        flex-wrap: nowrap !important; /* REAFIRMADO: Garante que NUNCA quebrem para a linha de baixo */
+        text-align: center; /* Garante que o texto dentro dos botões fique centralizado */
+        padding: 0 5px; /* Adiciona um pequeno padding nas laterais do contêiner para não colar nas bordas da tela */
+    }
+     
+    .navigation-buttons .btn-voltar {
+        padding: 10px 20px;
+        font-size: 1rem;
+        background-color: #ccc; /* Cor diferenciada */
+        font-weight: 500;
+    }
+
+    .navigation-buttons .btn-primary {
+        padding: 15px 30px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+
+    .navigation-buttons button {
+        /* cada botão ocupa até 45% do container, encolhe se precisar */
+        flex: 1 1 0; /* Permite que o botão encolha ao máximo necessário (base 0), mas também cresça */
+        white-space: nowrap !important; /* O texto NUNCA quebra em múltiplas linhas */
+        overflow: hidden; /* Esconde qualquer texto que não caiba após encolher */
+        text-overflow: ellipsis; /* Adiciona '...' se o texto for cortado (feedback visual) */
+        display: flex; /* mantém a mesma altura */
+        align-items: center;
+        justify-content: center;
+        /* Ajustes de texto e padding mantidos */
+        font-size: clamp(0.7rem, 2.8vw, 1rem) !important; /* Aumenta o tamanho mínimo da fonte para melhorar a legibilidade em telas pequenas. */
+        padding: clamp(10px, 2.5vw, 15px) clamp(10px, 3.5vw, 25px) !important; /* Aumenta o padding mínimo para dar mais respiro ao texto e visualmente mais "corpo" aos botões. */
+        box-sizing: border-box; /* Garante que padding e border não aumentem a largura total */
+        transition: all 0.2s ease-in-out; /* Adiciona uma transição suave para os redimensionamentos */
+    }
+
+    #final-resultado {
+        display: none;
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.8s ease, transform 0.8s ease;
+        padding: 70px;
+        max-width: 360px;      
+        margin: 0 auto 20px;  /* mantém centralizado */
+        border-radius: 20px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        text-align: left;
+        margin-top: 50px;
+        line-height: 1.4;
+        scroll-margin-top: 104px !important;   /* igual ao header+padding */
+        padding-bottom: 160px !important;     /* espaço extra abaixo do card */
+    }
+    #final-resultado.show { display: block; opacity: 1; transform: translateY(0); }
+
+
+    /* ===== Regras de impressão para o resultado - leve e sem elementos da interface ===== */
+    @media print {
+        /* remove barra lateral/cor de fundo */
+        body, html { background: #fff !important; color: #111 !important; }
+        /* garante que o resultado ocupe toda a largura da página de impressão */
+        #final-resultado { max-width: 100% !important; box-shadow: none !important; background: transparent !important; padding: 6mm !important; }
+        /* remove o botão/controle de export no print */
+        .result-export-controls { display: none !important; }
+        /* imagens: ajustar */
+        #final-resultado img { max-width: 100% !important; height: auto !important; }
+    }
+
+
+    /* Ajuste para títulos usando a fonte da marca */
+    h1, h2, h3, h4, h5,
+    #final-resultado .final-results-header h3,
+    #final-resultado .final-results-header p.lead {
+        font-family: var(--font-heading); /* Usará Poppins */
+    }
+        
+    /* Manter pesos e tamanhos específicos se necessário, mas usar a fonte da marca */
+    #final-resultado .final-results-header h3 {
+        font-weight: 700; /* Pode ser 'Bold' ou 'SemiBold' conforme definido para Montserrat */
+        font-size: 1.5rem; /* título "Diagnóstico de estilo finalizado."*/
+        line-height: 1.2;
+        text-align: center;
+        color: var(--brand-neutral-dark); /* Usar cinza escuro da marca */
+    }
+
+    #final-resultado .final-results-header p.lead {
+        font-size: 1.2rem; /* frase "Parabéns! Os seus estilos são:" */
+        color: var(--brand-neutral-dark); /*  Usar cinza escuro da marca */
+    }
+
+    /* Outros textos (descrições) */
+    .style-result p.style-description {
+        font-family: var(--font-body); /*  Usará Poppins */
+        color: var(--brand-neutral-dark); /*  Usará o novo preto */
+    }
+
+    .style-result {
+        padding: 30px;
+        border-radius: 15px;
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.07);
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .style-result:hover { transform: translateY(-10px); box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+
+    .style-result p.text-muted small {
+        white-space: nowrap; /* Impede a quebra de linha para o texto da porcentagem */
+    }
+
+    /* Ajustar cores de texto menores no resultado */
+    .style-result h4 {
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: var(--brand-neutral-dark); /* Usar cinza escuro da marca */
+    }
+
+    .style-icon { font-size: 1.5rem; margin-right: 10px; }
+    .style-name { font-size: clamp(2rem, 6vw, 3rem); font-weight: 800; line-height: 1.1; margin-bottom: 20px; display: block; text-align: center; }
+
+    .primary-style .style-name {
+        background: linear-gradient(45deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, white) 100%); /*  Gradiente com a cor primária */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .secondary-style .style-name {
+        background: linear-gradient(45deg, var(--brand-secondary) 0%, color-mix(in srgb, var(--brand-secondary) 80%, white) 100%); /*  Gradiente com a cor secundária */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .tertiary-style .style-name {
+        background: linear-gradient(45deg, var(--brand-tertiary) 0%, color-mix(in srgb, var(--brand-tertiary) 80%, white) 100%); /*  Gradiente com a cor terciária */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .style-result p.style-description { font-size: 1.05rem; line-height: 1.7; color: #34495e; text-align: left; }
+
+    .style-result p.text-muted small {
+         white-space: nowrap; /* Impede a quebra de linha para o texto da porcentagem */
+    }
+
+    /* Fundo da seção de resultados */
+    #final-resultado {
+        background: linear-gradient(135deg, var(--brand-neutral-light) 0%, color-mix(in srgb, var(--brand-neutral-light) 90%, var(--brand-neutral-medium)) 100%); /*  Gradiente com neutros da marca */
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    @keyframes fadeInSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeOutAndUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-30px); } }
+    .fade-out-section { animation: fadeOutAndUp 0.5s ease-out forwards; }
+
+    .quiz-img + p.text-muted {
+        margin-top: 5px !important;   
+        font-size: 0.8rem !important; 
+        opacity: 0.9 !important;      
+        font-weight: normal !important;
+        line-height: 1.4 !important;  
+        word-break: break-word !important; 
+        text-align: center;           
+    }
+
+    .row.justify-content-center.phase-1,
+    .row.justify-content-center.phase-2,
+
+    .row.justify-content-center.phase-3 {
+        display: block !important;
+        margin: 0 !important;
+        --bs-gutter-x: 0 !important;
+        --bs-gutter-y: 0 !important;
+    }
+
+    /* Configuração padrão para TODOS os itens de resposta dentro das fases (botões ou imagens) */
+    /* Garante que se comportem como blocos em uma lista */
+    .row.justify-content-center.phase-1 > div[class*="col-"],
+    .row.justify-content-center.phase-2 > div[class*="col-"],
+   
+    .row.justify-content-center.phase-3 > div[class*="col-"] {
+        width: 100% !important; 
+        max-width: none !important;
+        flex-basis: auto !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 8px 15px !important;
+        overflow: visible !important;
+        height: auto !important; 
+        display: block !important;  
+        object-fit: contain; /* Garante que a imagem inteira seja visível dentro do espaço, mantendo proporção. */
+    }
+
+    /* REATIVAR display: grid PARA FASES QUE CONTÊM IMAGENS */
+    /* Esta regra tem mais especificidade e será aplicada APENAS se houver uma imagem no contêiner */
+    .row.justify-content-center.phase-1:has(.quiz-img) {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important; /* Layout para Fase 1 com imagens */
+        grid-template-rows: auto auto auto !important; 
+        gap: 0.2cm 0.2cm !important;
+        justify-items: center; 
+    }
+    .row.justify-content-center.phase-2:has(.quiz-img),
+    
+    .row.justify-content-center.phase-3:has(.quiz-img) {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important; /* Layout para Fase 2 e 3 com imagens */
+        grid-template-rows: auto auto !important;
+        gap: 0.3cm 0.5cm !important;
+        justify-items: center;
+    }
+
+    /* NOVO BLOCO: Estilo para os ITENS DO GRID (colunas que contêm imagens) */
+    .row.justify-content-center.phase-1:has(.quiz-img) > div[class*="col-"],
+    .row.justify-content-center.phase-2:has(.quiz-img) > div[class*="col-"],
+
+    .row.justify-content-center.phase-3:has(.quiz-img) > div[class*="col-"] {
+        width: 100%; /* Garante que a imagem ocupe 100% da largura do contêiner */
+        height: auto; /* IMPORTANTE: Mantém a proporção da imagem automaticamente */
+        max-width: none !important;
+        flex-basis: auto !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 8px !important; /* Padding interno da caixa da imagem */
+        min-height: 350px !important; /* Mantém a altura mínima APENAS para colunas que possuem quiz-img */
+        overflow: visible !important;
+        display: flex !important; /* Reativa flexbox para alinhar conteúdo dentro da caixa da imagem */
+        flex-direction: column !important; /* Conteúdo em coluna (imagem + texto) */
+        justify-content: flex-start !important; /* Alinha ao topo da caixa */
+        align-items: center !important; /* Centraliza horizontalmente o conteúdo da caixa */
+        object-fit: contain; /* Garante que a imagem inteira seja visível dentro do espaço, mantendo proporção. */
+    }
+
+    /* Isso garante que os botões se ajustem melhor ao conteúdo (seja ele curto ou longo) e fiquem centralizados. */
+    .pergunta-container button.btn { /* Este seletor assume que seus botões são tags <button> com a classe .btn dentro de um .pergunta-container */
+        width: 100% !important; /* Ocupa a largura total da coluna */
+        height: 100% !important; /* Ocupa a altura total do contêiner da coluna (graças ao 'display: flex' e 'align-items: stretch' do pai) */
+        display: flex !important; /* Usa flexbox para o conteúdo interno do botão */
+        flex-direction: column !important; /* Conteúdo em coluna para centralizar verticalmente */
+        justify-content: center !important; /* Centraliza o texto verticalmente */
+        align-items: center !important;     /* Centraliza o texto horizontalmente */
+        text-align: center !important;       /* Garante que o texto esteja centralizado */
+        padding: 15px 25px !important; /* Aumenta o padding para melhor leitura */
+        font-size: 1rem !important;    /* Ajusta o tamanho da fonte para boa legibilidade */
+        white-space: normal !important; /* Deixe como 'normal' ou 'unset' aqui, pois o 'nowrap' é mais específico abaixo */
+        word-break: normal !important; 
+        max-width: 400px; /* Opcional: Limita a largura máxima do botão para não ficar absurdamente largo em telas grandes */
+        margin: auto !important; /* Centraliza o botão dentro da coluna se ele tiver max-width */
+    }
+
+    /* Opcional: Remova qualquer margin-bottom de botões se estiver causando espaço extra */
+    .pergunta-container button.btn.mb-3,
+    .pergunta-container button.btn.mb-2,
+
+    .pergunta-container button.btn.mb-1 {
+        margin-bottom: 0 !important;
+    }    
+    
+    .pergunta-container {
+        /* margem “invisível” antes de colar no topo */
+        scroll-margin-top: 104px !important;
+    }
+
+    /* Remove bottom margin applied by mb classes */
+    .row.justify-content-center .mb-1, 
+    .row.justify-content-center .mb-2, 
+
+    .row.justify-content-center .mb-3 {
+        margin-bottom: 0 !important;
+    }
+
+    /* Estilo dos botões primários */
+    .btn-primary {
+        background-color: #004C34 !important; /* Novo verde para o botão */
+        border-color: #004C34 !important;     /* Borda com o novo verde */
+        border-radius: 8px; /* Cantos arredondados, conforme manual */
+        font-family: var(--font-heading); /* Usar fonte de títulos da marca */
+        font-weight: 600; /* SemiBold */
+    }
+
+    .btn-primary:hover {
+        background-color: color-mix(in srgb, #004C34 90%, black) !important; /* Tom mais escuro do verde no hover */
+        border-color: color-mix(in srgb, #004C34 90%, black) !important; /* Borda com tom mais escuro do verde no hover */
+    }
+
+    /* Estilos para botões de contorno (opções de pergunta não selecionadas) */
+    .btn-outline-primary {
+        color: var(--brand-neutral-dark) !important; /* Cor do texto das opções para cinza escuro */
+        border-color: var(--brand-neutral-dark) !important; /* Cor da borda das opções para cinza escuro */
+        background-color: transparent !important; /* Garante fundo transparente */
+    }
+
+    /* Estilos para o efeito hover (quando o mouse passa por cima) */
+    .btn-outline-primary:hover {
+        color: white !important; /* Texto branco no hover */
+        background-color: var(--brand-neutral-dark) !important; /* Fundo cinza escuro no hover */
+        border-color: var(--brand-neutral-dark) !important; /* Borda cinza escuro no hover */
+    }
+
+    /* Estilos para o efeito active/focus (quando o botão 'Próxima Pergunta' é clicado ou está focado) */
+    .btn-outline-primary:active,
+    .btn-outline-primary:focus {
+        color: white !important;
+        background-color: var(--brand-neutral-dark) !important;
+        border-color: var(--brand-neutral-dark) !important;
+        box-shadow: 0 0 0 0.25rem rgba(14, 14, 14, 0.25) !important; /* Sombra de foco com cor base no novo cinza */
+    }
+
+    /* Estilos para o efeito active/focus (quando o botão 'Voltar' é clicado ou está focado) */
+    .btn-outline-secondary {
+        border-color: #00A896 !important;
+        color: #00A896 !important;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #00A896 !important;
+        color: #fff !important;
+    }
+    
+    /* ESTILOS PARA O CABEÇALHO FIXO COM A LOGO */
+    .sticky-header {
+        position: fixed; /* Isso faz com que o cabeçalho permaneça no lugar, mesmo ao rolar */
+        top: 0;          /* Alinha ao topo da janela do navegador */
+        left: 0;         /* Alinha à esquerda da janela do navegador */
+        width: 100%;
+        max-width: none;/* Largura máxima desejada - TELA TODA */
+        right: 0;        /* Garante que o cabeçalho se estenda até a borda direita */
+        margin: 0 auto;  /* Centraliza no mobile/desktop */
+        background-color: var(--brand-neutral-light); /* Cor de fundo (bege da marca) */
+        padding: 0 20px !important; /* Espaçamento interno: 10px em cima/baixo, 20px nas laterais */
+        box-shadow: none !important; 
+        border: none !important;     
+        z-index: 1000;   /* Garante que o cabeçalho fique acima de outros elementos na página */
+        display: flex;   /* Para alinhar a logo dentro dele */
+        justify-content: center; /* Centraliza a logo horizontalmente no cabeçalho */
+        align-items: center; /* Centraliza a logo verticalmente */
+        height: 70px; /* MENOR desde o início*/
+        overflow: hidden; /* Garante que nada transborde do cabeçalho caso a logo seja muito grande */
+    }   
+    
+    .sticky-header .logo-link img {
+        width: 100%; 
+        max-width: 100%; /* A imagem não excede 100% da largura do container*/
+        height: auto;
+        max-height: 45px; /* Limita a altura da logo para caber no cabeçalho de 70px (deixando 5px de padding top/bottom invisível) */
+        display: block;
+        margin: 0 auto;
+        background-color: transparent !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        object-fit: contain;
+        transition: opacity 0.3s ease;
+    }
+
+    .sticky-header .logo-link {
+        background-color: transparent !important; /* Torna o fundo do LINK transparente */
+        border: none !important; /* Remove qualquer borda do link */
+        outline: none !important;
+        box-shadow: none !important;
+        text-decoration: none !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }    
+
+    /* Esconde a logo quando o cabeçalho está escondido */    
+    .sticky-header.hidden .logo-link {
+        display: none !important;
+    }
+
+        
+    @media (max-width: 768px) {
+        .row.justify-content-center.phase-1:has(.quiz-img),
+        .row.justify-content-center.phase-2:has(.quiz-img),
+
+        .row.justify-content-center.phase-3:has(.quiz-img) {
+            min-height: 550px !important; 
+            display: block !important; /* Isso fará com que as divs de imagem se empilhem */
+            grid-template-columns: unset !important;
+            grid-template-rows: unset !important;
+            gap: unset !important;
+        }
+
+        .sticky-header {
+            padding: 0 !important; /*  Remove todo o padding para mobile também */
+            height: 80px;  /* Reduz um pouco a altura do cabeçalho para mobile, para dar mais espaço ao conteúdo */
+        }
+        
+        h3, h4, .lead {
+          font-size: 1.0rem;
+          text-align: center;
+        }
+
+        .style-description {
+          font-size: 0.95rem;
+        }
+
+        .row.justify-content-center.phase-1:has(.quiz-img) > div[class*="col-"],
+        .row.justify-content-center.phase-2:has(.quiz-img) > div[class*="col-"],
+
+        .row.justify-content-center.phase-3:has(.quiz-img) > div[class*="col-"] {
+            padding: 2px !important; /* Reduz o padding para a imagem ocupar mais espaço na horizontal */
+            min-height: 280px !important; /* Aumenta a altura mínima para as imagens em celulares */
+        }
+
+        #final-resultado {
+            padding: 10px !important; /* Reduz o padding do container principal de resultados para dar mais espaço ao conteúdo */
+        }
+
+        .style-name {
+            font-size: clamp(1.8rem, 8vw, 2.5rem); /* Ajusta o clamp para ser mais responsivo em telas pequenas, permitindo que o texto diminua mais */
+            word-break: break-word; /* Permite que palavras longas quebrem para evitar transbordamento */
+        }
+
+        .style-result {
+            padding: 15px !important; /* Reduz o padding interno de cada card de resultado para mais espaço para o texto */
+        }
+        
+        .sticky-header .logo-link img {
+            height: auto; /* Mantém auto para proporção */
+            max-width: 100%; /* Preenche 100% da largura em mobile */
+            max-height: 35px; /* A logo agora será menor no mobile (35px) do que no desktop (45px) */
+        }
+
+        .intro-page h1 {
+            font-size: 1.3rem; /* Ainda menor para tablets */
+            margin-bottom: 0.8rem !important;
+        }
+        .intro-page h3.card-title {
+            font-size: 1.1rem; /* Ainda menor para tablets */
+            margin-bottom: 0.5rem !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        body {
+            max-width: 100% !important;
+            padding-left: 5px !important;   /* Mantém o padding horizontal */
+            padding-right: 5px !important;  /* Mantém o padding horizontal */
+            padding-bottom: 8px !important; /* Mantém o padding inferior */
+        }
+
+        #final-resultado {
+             padding: 5px !important; /* Reduz ainda mais o padding para telas muito pequenas */
+        }
+    }    
+
+    @media (min-width: 768px) {
+        #final-resultado {
+            max-width: 900px;
+        }   
+    }
+
+    .btn {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }  
+
+    /* Esconde a logo ao rolar a tela */ 
+    .sticky-header.hidden {
+        transform: translateY(-100%);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    /* Botão voltar com estilo diferenciado */
+    .navigation-buttons .btn-voltar {
+        min-width: 120px;
+        padding: 10px 18px !important;
+        font-size: 1rem !important;
+        border-radius: 6px;
+        font-weight: 500;
+        background-color: #ccc;
+        color: #000;
+    }
+
+    @media (max-width: 480px) { /* Para smartphones */
+        .intro-page h1 {
+            font-size: 1.1rem; /* Mínimo para smartphones */
+            margin-bottom: 0.5rem !important;
+        }
+        .intro-page h3.card-title {
+            font-size: 0.95rem; /* Mínimo para smartphones, garanta legibilidade */
+            margin-bottom: 0.3rem !important;
+        }
+    }
+
+    /* Consolidação do padding-top do body */
+    body {
+        padding-top: 70px !important; /* Padrão para desktop e telas maiores (altura do sticky-header) */
+    }
+
+    @media (max-width: 768px) {
+        body {
+            padding-top: 80px !important; /* Para tablets e celulares (altura do sticky-header ajustada) */
+        }
+    }
