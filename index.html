@@ -10,8 +10,7 @@
         <link rel="stylesheet" href="style.css">
 
         <link rel="icon" href="data:,">
-        <link rel="manifest" href="manifest.json">
-        
+                
     </head>
     <body>
         <header class="sticky-header">
@@ -45,7 +44,7 @@
             <div class="modal-body" id="modalBody">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="modal-continue-btn">Continuar</button>
+                <button type="button" class="btn btn-primary" id="modal-continue-btn" onclick="proceedToNextStep()">Continuar</button>
             </div>
             </div>
         </div>
@@ -58,7 +57,29 @@
         
         <script src="script.js" defer></script>
         
-        <script src="./main.js" defer></script>
+        <script>
+            // Define a altura da viewport real para lidar com barras de navegação móveis
+            function setVhProperty() {
+                let vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+
+            // Chama a função inicialmente
+            setVhProperty();
+
+            // Chama a função novamente se a janela for redimensionada (ex: teclado aparece/desaparece, rotação)
+            window.addEventListener('resize', setVhProperty);
+        </script>
+        <script>
+            // Chama a função que esconde a logo ao rolar a tela - add 05/08
+            const header = document.querySelector('.sticky-header');
+            window.addEventListener("scroll", function() {
+                if (window.scrollY > 10) {
+                    header.classList.add("hidden"); // Esconde a logo para sempre
+                }
+            });
+
+        </script>
 
         <!-- SEND RESULT MODAL (fora de qualquer outro .modal) -->
         <div class="modal fade" id="send-result-modal" tabindex="-1" aria-hidden="true"
