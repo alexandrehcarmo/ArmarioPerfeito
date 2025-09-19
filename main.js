@@ -1,11 +1,3 @@
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-        .then(() => console.log('SW registrado'))
-        .catch(err => console.error('Erro SW:', err));
-    });
-}
-
 // Define a altura da viewport real para lidar com barras de navegação móveis
 function setVhProperty() {
     let vh = window.innerHeight * 0.01;
