@@ -173,12 +173,10 @@
             <div class="navigation-buttons d-flex justify-content-between">
                 <button id="btn-voltar"
                     class="btn btn-outline-secondary btn-lg"
-                    onclick="voltarPergunta()"
                     ${perguntaAtualIndice === 0 ? 'disabled' : ''}> Voltar
                 </button>
                 <button id="btn-proxima"
                     class="btn btn-primary btn-lg"
-                    onclick="avancarParaProximaPergunta()"
                     disabled>
                     Próxima Pergunta
                 </button>
@@ -188,6 +186,17 @@
         // Adiciona ao DOM
         quizSection.appendChild(perguntaDiv);
         
+        // --- NOVO CÓDIGO A SER ADICIONADO AQUI 19/09 ---
+        const btnVoltar = document.getElementById('btn-voltar');
+        if (btnVoltar) {
+            btnVoltar.addEventListener('click', voltarPergunta);
+        }
+
+        const btnProxima = document.getElementById('btn-proxima');
+        if (btnProxima) {
+            btnProxima.addEventListener('click', avancarParaProximaPergunta);
+        }
+
         /* ALTERADO 30/07 */ 
         perguntaDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
