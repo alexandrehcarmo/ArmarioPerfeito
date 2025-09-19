@@ -66,13 +66,24 @@
             <h3 class="card-title text-center mb-3 text-primary">${introPages[currentIntroPageIndex].title}</h3>
             <div class="card-text">${introPages[currentIntroPageIndex].content}</div>
             <div class="navigation-buttons">
-                ${currentIntroPageIndex > 0 ? '<button class="btn btn-outline-secondary" onclick="prevIntroPage()">Voltar</button>' : ''}
-                <button class="btn btn-primary" onclick="nextIntroPage()">${currentIntroPageIndex < introPages.length - 1 ? 'Próximo' : 'Começar Teste'}</button>
+                ${currentIntroPageIndex > 0 ? '<button class="btn btn-outline-secondary" id="prev-intro-btn">Voltar</button>' : ''}
+                <button class="btn btn-primary" id="next-intro-btn">${currentIntroPageIndex < introPages.length - 1 ? 'Próximo' : 'Começar Teste'}</button>
             </div>
         </div>
         `;
         
         introSection.style.display = 'block';
+
+        // Adiciona event listeners para os botões da introdução
+        const nextBtn = document.getElementById('next-intro-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', nextIntroPage);
+        }
+
+        const prevBtn = document.getElementById('prev-intro-btn');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', prevIntroPage);
+        }
     }
 
     function nextIntroPage() {
