@@ -655,7 +655,8 @@
 
             // Configurações do html2pdf
             const opt = {
-                margin:       [10, 8, 10, 8], // mm (top,right,bottom,left)
+                // margin:       [10, 8, 10, 8], // mm (top,right,bottom,left)
+                margin:       [3.175, 3.175, 3.175, 3.175], // mm
                 filename:     `Resultado_ArmarioPerfeito_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.pdf`,
                 image:        { type: 'jpeg', quality: 0.85 },
                 html2canvas:  { scale: 1.5, useCORS: true, logging: false },
