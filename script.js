@@ -1218,7 +1218,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
 
         // opções html2pdf/html2canvas
         const opt = {
-            margin:       [10, 8, 10, 8],
+            margin:       [05, 8, 10, 8],
             filename:     `Resultado_ArmarioPerfeito.pdf`,
             image:        { type: 'jpeg', quality: 0.95 },
             html2canvas:  { 
@@ -1384,10 +1384,10 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                         try {
                             if (clonedBody) {
                                 // altura de página alvo em pixels (A4 portrait ~1122px @96dpi). Ajuste se necessário.
-                                let pagePx = 1022;
+                                let pagePx = 1000;
                                 // em mobile pode ser útil um valor um pouco menor:
                                 if (window && window.innerWidth && window.innerWidth < 500) pagePx = 1000;
-                                const marginPx = 40; // margens top+bottom reservadas
+                                const marginPx = 30; // margens top+bottom reservadas
                                 const targetHeight = pagePx - marginPx;
 
                                 // função que mede e aplica zoom (usa clonedDoc.documentElement para leituras corretas)
@@ -1572,7 +1572,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 // ---------- Configurável: quanto empurrar para baixo (em px) ----------
                 // Aumente este valor para descer mais; diminua para subir.
                 // Ex.: 40, 60, 100, 160 ... teste iterando.
-                const marginTopPx = 10; // <-- ajuste este valor até ficar perfeito
+                const marginTopPx = 05; // <-- ajuste este valor até ficar perfeito
                 // --------------------------------------------------------------------
 
                 // estilos como bloco (vai empurrar o conteúdo abaixo)
@@ -1582,7 +1582,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 meta.style.width = '100%';
                 meta.style.boxSizing = 'border-box';
                 meta.style.marginTop = marginTopPx + 'px';
-                meta.style.fontSize = '11px';
+                meta.style.fontSize = '10px';
                 meta.style.lineHeight = '1.1';
                 meta.style.color = '#222';
                 meta.style.textAlign = 'center'; 
@@ -1602,7 +1602,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                     const hdr = elem.querySelector('.final-results-header');
                     // adiciona um pequeno espaçamento para separar visualmente do título
                     meta.style.marginTop = '0';
-                    meta.style.marginBottom = '12px'; // ajuste este valor para aumentar/diminuir o espaço
+                    meta.style.marginBottom = '05px'; // ajuste este valor para aumentar/diminuir o espaço
                     if (hdr && hdr.parentNode === elem) {
                         // inserir antes do header — empurra todo o conteúdo para baixo
                         elem.insertBefore(meta, hdr);
