@@ -564,7 +564,8 @@
             clone.addEventListener('click', function (ev) {
                 ev.preventDefault();
                 ev.stopPropagation();   // evita que o listener global em document capture este clique - ADICIONADO 18/09
-                handleDownload();
+                openSendModalPrefill(); // abre modal para coletar nome/email antes de gerar o PDF
+                // handleDownload(); COMENTADA EM 22/09 - INCLUSAO NOME E EMAIL NO PDF
             });
         }
 
@@ -590,6 +591,28 @@
         // Conteúdo que vamos imprimir/transformar em PDF
         const contentHTML = finalContainer.innerHTML;
 
+        // --- metadata para print window (fallback desktop) ---
+        (function () {
+            function _apEscapeHtml(str) {
+                return (str||'').toString().replace(/[&<>"']/g, function (m) {
+                    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+                });
+            }
+            const _apName  = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('ap_name') || '' : '';
+            const _apEmail = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('ap_email') || '' : '';
+            const _apDate  = (new Date()).toLocaleDateString();
+
+            if (_apName || _apEmail) {
+                window.__AP_PRINT_METADATA_HTML = `<div id="ap-pdf-metadata" style="position:absolute;left:12px;right:12px;bottom:8px;font-size:11px;line-height:1.1;color:#222;text-align:left;z-index:9999;background:transparent;padding:0;margin:0;">
+                    <strong style="font-weight:600;margin-right:6px;">Nome:</strong>${_apEscapeHtml(_apName)} &nbsp;&nbsp;
+                    <strong style="font-weight:600;margin-right:6px;">E-mail:</strong>${_apEscapeHtml(_apEmail)} &nbsp;&nbsp;
+                    <strong style="font-weight:600;margin-right:6px;">Data:</strong>${_apEscapeHtml(_apDate)}
+                </div>`;
+            } else {
+                window.__AP_PRINT_METADATA_HTML = '';
+            }
+        })();
+
         // Versão leve do HTML que será usada tanto para print quanto para o html2pdf
         const printHTML = `
         <!doctype html>
@@ -613,6 +636,7 @@
         </head>
         <body>
             ${contentHTML}
+            ${window.__AP_PRINT_METADATA_HTML || ''}
         </body>
         </html>
         `;
@@ -989,13 +1013,159 @@
     const sendModal = sendModalEl ? new bootstrap.Modal(sendModalEl) : null;
 
     function openSendModalPrefill() {
-    const nameInput = document.getElementById('sendName');
-    const emailInput = document.getElementById('sendEmail');
-    // preenche se já existir em sessionStorage
-    if (sessionStorage.getItem('ap_name')) nameInput.value = sessionStorage.getItem('ap_name');
-    if (sessionStorage.getItem('ap_email')) emailInput.value = sessionStorage.getItem('ap_email');
-    sendModal.show();
+        const nameInput = document.getElementById('sendName');
+        const emailInput = document.getElementById('sendEmail');
+        // preenche se já existir em sessionStorage
+        if (sessionStorage.getItem('ap_name')) nameInput.value = sessionStorage.getItem('ap_name');
+        if (sessionStorage.getItem('ap_email')) emailInput.value = sessionStorage.getItem('ap_email');
+        sendModal.show();
     }
+
+// --- ANEXAR HANDLER MINIMAL E SEGURO para #btnGenerateAndSend ---
+(function () {
+    const btn = document.getElementById('btnGenerateAndSend');
+    const sendModalEl = document.getElementById('send-result-modal');
+    if (!btn || !sendModalEl) return; // evita erro se HTML diferente
+
+    // evita múltiplas ligações se o script for executado outra vez
+    if (btn.dataset.listenerAttached === '1') return;
+    btn.dataset.listenerAttached = '1';
+
+    btn.addEventListener('click', async function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        const nameInput = document.getElementById('sendName');
+        const emailInput = document.getElementById('sendEmail');
+        const feedback = document.getElementById('sendFeedback');
+
+        const name = (nameInput && nameInput.value || '').trim();
+        const email = (emailInput && emailInput.value || '').trim();
+
+        if (!name || !email) {
+            if (feedback) feedback.textContent = 'Por favor preencha nome e e-mail.';
+            return;
+        }
+        if (feedback) feedback.textContent = 'Gerando PDF...';
+
+        try {
+            sessionStorage.setItem('ap_name', name);
+            sessionStorage.setItem('ap_email', email);
+        } catch (e) { /* ignore */ }
+
+        // fecha o modal (tenta instâncias possíveis)
+        try {
+            if (window.sendModal && typeof window.sendModal.hide === 'function') {
+                window.sendModal.hide();
+            } else if (typeof sendModal !== 'undefined' && sendModal && typeof sendModal.hide === 'function') {
+                sendModal.hide();
+            } else {
+                const bs = bootstrap && bootstrap.Modal ? bootstrap.Modal.getInstance(sendModalEl) : null;
+                if (bs && typeof bs.hide === 'function') bs.hide();
+            }
+        } catch (e) { /* ignore */ }
+
+        // pequeno delay para animação do modal antes de gerar PDF
+        setTimeout(async () => {
+            try {
+                if (typeof handleDownload === 'function') {
+                    await handleDownload();
+                } else {
+                    const finalEl = document.getElementById('final-resultado');
+                    if (finalEl && typeof generatePdfBlobFromElement === 'function') {
+                        const blob = await generatePdfBlobFromElement(finalEl);
+                        const filename = `Resultado_${new Date().toISOString().slice(0,10)}.pdf`;
+                        downloadPdfBlob(blob, filename);
+                    } else {
+                        // fallback não intrusivo
+                        if (typeof createPrintViewAndPrint === 'function') {
+                            createPrintViewAndPrint(document.getElementById('final-resultado'));
+                        } else {
+                            console.warn('Nenhuma rotina de geração de PDF disponível.');
+                            if (feedback) feedback.textContent = 'Erro: rotina de geração não encontrada.';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao gerar/enviar PDF:', err);
+                if (feedback) feedback.textContent = 'Erro ao gerar PDF. Veja console.';
+            }
+        }, 220);
+    }, { passive: false });
+})();
+
+// --- ANEXAR HANDLER MINIMAL E SEGURO para #btnGenerateAndSend ---
+(function () {
+    const btn = document.getElementById('btnGenerateAndSend');
+    const sendModalEl = document.getElementById('send-result-modal');
+    if (!btn || !sendModalEl) return; // evita erro se HTML diferente
+
+    // evita múltiplas ligações se o script for executado outra vez
+    if (btn.dataset.listenerAttached === '1') return;
+    btn.dataset.listenerAttached = '1';
+
+    btn.addEventListener('click', async function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        const nameInput = document.getElementById('sendName');
+        const emailInput = document.getElementById('sendEmail');
+        const feedback = document.getElementById('sendFeedback');
+
+        const name = (nameInput && nameInput.value || '').trim();
+        const email = (emailInput && emailInput.value || '').trim();
+
+        if (!name || !email) {
+            if (feedback) feedback.textContent = 'Por favor preencha nome e e-mail.';
+            return;
+        }
+        if (feedback) feedback.textContent = 'Gerando PDF...';
+
+        try {
+            sessionStorage.setItem('ap_name', name);
+            sessionStorage.setItem('ap_email', email);
+        } catch (e) { /* ignore */ }
+
+        // fecha o modal (tenta instâncias possíveis)
+        try {
+            if (window.sendModal && typeof window.sendModal.hide === 'function') {
+                window.sendModal.hide();
+            } else if (typeof sendModal !== 'undefined' && sendModal && typeof sendModal.hide === 'function') {
+                sendModal.hide();
+            } else {
+                const bs = bootstrap && bootstrap.Modal ? bootstrap.Modal.getInstance(sendModalEl) : null;
+                if (bs && typeof bs.hide === 'function') bs.hide();
+            }
+        } catch (e) { /* ignore */ }
+
+        // pequeno delay para animação do modal antes de gerar PDF
+        setTimeout(async () => {
+            try {
+                if (typeof handleDownload === 'function') {
+                    await handleDownload();
+                } else {
+                    const finalEl = document.getElementById('final-resultado');
+                    if (finalEl && typeof generatePdfBlobFromElement === 'function') {
+                        const blob = await generatePdfBlobFromElement(finalEl);
+                        const filename = `Resultado_${new Date().toISOString().slice(0,10)}.pdf`;
+                        downloadPdfBlob(blob, filename);
+                    } else {
+                        // fallback não intrusivo
+                        if (typeof createPrintViewAndPrint === 'function') {
+                            createPrintViewAndPrint(document.getElementById('final-resultado'));
+                        } else {
+                            console.warn('Nenhuma rotina de geração de PDF disponível.');
+                            if (feedback) feedback.textContent = 'Erro: rotina de geração não encontrada.';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao gerar/enviar PDF:', err);
+                if (feedback) feedback.textContent = 'Erro ao gerar PDF. Veja console.';
+            }
+        }, 220);
+    }, { passive: false });
+})();
 
 
     // Aguarda a logo estar carregada (evita PDF sem a imagem)
@@ -1013,13 +1183,31 @@
         }));
     };
 
-    // Exemplo de uso: esperar antes de chamar a rotina de geração
-    waitForLogo(3000).then(() => {
-        // aqui chama a sua função original que gera o PDF, ex:
-        generatePdfBlobFromElement(element);
-        // ou html2pdf().from(element)...
-        // mantenha sua chamada original aqui sem alteração.
+// Exemplo de uso (movido para função; NÃO executa automaticamente)
+// Para usar manualmente (por exemplo no console): exampleGeneratePdfAfterDelay(3000);
+function exampleGeneratePdfAfterDelay(delay = 3000) {
+    // não chama nada até que você invoque explicitamente esta função
+    return waitForLogo(delay).then(async () => {
+        try {
+            const el = document.getElementById('final-resultado');
+            if (!el) {
+                console.info('exampleGeneratePdfAfterDelay: elemento #final-resultado não encontrado — nada a fazer.');
+                return;
+            }
+            if (typeof generatePdfBlobFromElement !== 'function') {
+                console.info('exampleGeneratePdfAfterDelay: generatePdfBlobFromElement não definida — nada a fazer.');
+                return;
+            }
+            // chama de forma segura e aguarda; erros capturados para não quebrar nada
+            await generatePdfBlobFromElement(el);
+        } catch (err) {
+            console.warn('exampleGeneratePdfAfterDelay: falha capturada (ignorada):', err);
+        }
+    }).catch(err => {
+        // se waitForLogo rejeitar, apenas logue e continue — NÃO interrompe o app
+        console.warn('exampleGeneratePdfAfterDelay: waitForLogo rejeitou (ignorado):', err);
     });
+}
 
     // Gera PDF do container #final-resultado em blob usando html2pdf (robusto)
     async function generatePdfBlobFromElement(element) {
@@ -1196,7 +1384,7 @@
                         try {
                             if (clonedBody) {
                                 // altura de página alvo em pixels (A4 portrait ~1122px @96dpi). Ajuste se necessário.
-                                let pagePx = 1122;
+                                let pagePx = 1022;
                                 // em mobile pode ser útil um valor um pouco menor:
                                 if (window && window.innerWidth && window.innerWidth < 500) pagePx = 1000;
                                 const marginPx = 40; // margens top+bottom reservadas
@@ -1283,15 +1471,184 @@
                         // não falha o processo se algo inesperado acontecer aqui
                         console.warn('onclone sanitization error', e);
                     }
+
+                    // --- INJETAR METADATA NO TOPO DO CLONE DO ELEMENTO ALVO (pos:absolute; top:8px) ---
+                    try {
+                        function _apEscapeHtml(str){
+                            return (str||'').toString().replace(/[&<>"']/g, function(m){
+                                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+                            });
+                        }
+                        const _apName  = sessionStorage.getItem('ap_name') || '';
+                        const _apEmail = sessionStorage.getItem('ap_email') || '';
+
+                        if (_apName || _apEmail) {
+                            // localizar clone do elemento alvo
+                            let clonedTarget = null;
+                            try {
+                                if (element && element.id) clonedTarget = clonedDoc.getElementById(element.id);
+                            } catch(e){ clonedTarget = null; }
+
+                            if (!clonedTarget) {
+                                try { clonedTarget = clonedDoc.querySelector('#final-resultado') || clonedDoc.body; } catch(e){ clonedTarget = clonedDoc.body; }
+                            }
+
+                            const attachTo = clonedTarget || clonedDoc.body || clonedDoc.documentElement;
+
+                            // garantir posicionamento relativo para o absolute funcionar corretamente dentro do target
+                            try { attachTo.style.position = attachTo.style.position || 'relative'; } catch(e){}
+
+                            // inserir style mínimo no head do clone (opcional, reforça comportamento)
+                            try {
+                                const s = clonedDoc.createElement('style');
+                                s.type = 'text/css';
+                                s.appendChild(clonedDoc.createTextNode("\
+                                    /* AP metadata styling (absolute top, não altera fluxo) */\n\
+                                    #ap-pdf-metadata { position: absolute !important; left: 12px !important; right: 12px !important; top: 8px !important; font-size:11px !important; line-height:1.1 !important; color:#222 !important; text-align:left !important; z-index:99999 !important; background:transparent !important; padding:0 !important; margin:0 !important; }\n\
+                                "));
+                                if (clonedDoc.head) clonedDoc.head.appendChild(s); else attachTo.insertBefore(s, attachTo.firstChild);
+                            } catch(e){ /* ignore */ }
+
+                            const meta = clonedDoc.createElement('div');
+                            meta.id = 'ap-pdf-metadata';
+                            meta.setAttribute('aria-hidden','true');
+                            meta.setAttribute('style', [
+                                'position:absolute',
+                                'left:12px',
+                                'right:12px',
+                                'top:8px',
+                                'font-size:11px',
+                                'line-height:1.1',
+                                'color:#222',
+                                'text-align:left',
+                                'z-index:99999',
+                                'background:transparent',
+                                'padding:0',
+                                'margin:0'
+                            ].join(';'));
+
+                            const today = new Date();
+                            const dateStr = today.toLocaleDateString();
+
+                            meta.innerHTML = '<strong style="font-weight:600;margin-right:6px;">Nome:</strong>' + _apEscapeHtml(_apName) +
+                                            ' &nbsp;&nbsp; <strong style="font-weight:600;margin-right:6px;">E-mail:</strong>' + _apEscapeHtml(_apEmail) +
+                                            ' &nbsp;&nbsp; <strong style="font-weight:600;margin-right:6px;">Data:</strong>' + _apEscapeHtml(dateStr);
+
+                            // inserir como FIRST CHILD do attachTo para garantir que esteja no topo do conteúdo renderizado
+                            try { attachTo.insertBefore(meta, attachTo.firstChild); } catch(e){ try { clonedDoc.body.insertBefore(meta, clonedDoc.body.firstChild); } catch(ee){ console.warn('ap: append meta falhou', ee);} }
+
+                            // DEBUG TEMP: expor HTML do clone target (pode remover depois)
+                            try { window.__AP_LAST_CLONED_TARGET_HTML = (attachTo && attachTo.outerHTML) || null; } catch(e){}
+                        }
+                    } catch(e) {
+                        console.warn('ap: falha ao inserir metadata top no clone (ignorado):', e);
+                    }
                 }
             },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
+        // --- AP: helpers para inserir/retirar metadata no elemento original DURANTE a geração ---
+        function _apEscapeHtml(str){
+            return (str||'').toString().replace(/[&<>"']/g, function(m){
+                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+            });
+        }
+        function attachMetadataToOriginal(elem){
+            try {
+                if (!elem) return null;
+                const name = sessionStorage.getItem('ap_name') || '';
+                const email = sessionStorage.getItem('ap_email') || '';
+                if (!name && !email) return null;
+
+                // guarda posição anterior para restaurar (só por precaução)
+                const prevPos = elem.style && elem.style.position ? elem.style.position : '';
+
+                try { if (!elem.style.position || elem.style.position === 'static') elem.style.position = 'relative'; } catch(e){}
+
+                // criar elemento (não inserido ainda)
+                const meta = document.createElement('div');
+
+                // ---------- Configurável: quanto empurrar para baixo (em px) ----------
+                // Aumente este valor para descer mais; diminua para subir.
+                // Ex.: 40, 60, 100, 160 ... teste iterando.
+                const marginTopPx = 10; // <-- ajuste este valor até ficar perfeito
+                // --------------------------------------------------------------------
+
+                // estilos como bloco (vai empurrar o conteúdo abaixo)
+                meta.id = '__ap_injected_meta';
+                meta.setAttribute('aria-hidden','true');
+                meta.style.display = 'block';
+                meta.style.width = '100%';
+                meta.style.boxSizing = 'border-box';
+                meta.style.marginTop = marginTopPx + 'px';
+                meta.style.fontSize = '11px';
+                meta.style.lineHeight = '1.1';
+                meta.style.color = '#222';
+                meta.style.textAlign = 'center'; 
+                meta.style.zIndex = '99999';
+                meta.style.background = 'transparent';
+                meta.style.padding = '0';
+                meta.style.marginLeft = '12px';
+                meta.style.marginRight = '12px';
+
+                const dateStr = (new Date()).toLocaleDateString();
+                meta.innerHTML = '<strong style="font-weight:600;margin-right:6px;">Nome:</strong>' + _apEscapeHtml(name) +
+                                ' &nbsp;&nbsp; <strong style="font-weight:600;margin-right:6px;">E-mail:</strong>' + _apEscapeHtml(email) +
+                                ' &nbsp;&nbsp; <strong style="font-weight:600;margin-right:6px;">Data:</strong>' + _apEscapeHtml(dateStr);
+
+                // inserir ANTES do cabeçalho (se existir) para DESCER todo o restante; fallback para firstChild
+                try {
+                    const hdr = elem.querySelector('.final-results-header');
+                    // adiciona um pequeno espaçamento para separar visualmente do título
+                    meta.style.marginTop = '0';
+                    meta.style.marginBottom = '12px'; // ajuste este valor para aumentar/diminuir o espaço
+                    if (hdr && hdr.parentNode === elem) {
+                        // inserir antes do header — empurra todo o conteúdo para baixo
+                        elem.insertBefore(meta, hdr);
+                    } else {
+                        // fallback: inserir no topo do conteúdo
+                        elem.insertBefore(meta, elem.firstChild);
+                    }
+                } catch (e) {
+                    try { elem.insertBefore(meta, elem.firstChild); } catch(ee){ elem.appendChild(meta); }
+                }
+
+                return prevPos || null;
+            } catch(e) { console.warn('attachMetadataToOriginal erro:', e); return null; }
+        }
+
+
+        function detachMetadataFromOriginal(elem, prevPos){
+            try {
+                if (!elem) return;
+                const m = elem.querySelector('#__ap_injected_meta');
+                if (m) try { m.remove(); } catch(e){ /* ignore */ }
+                if (prevPos !== null && prevPos !== undefined) {
+                    try { elem.style.position = prevPos || ''; } catch(e){}
+                }
+            } catch(e) { /* ignore */ }
+        }
+
         // tenta o método moderno outputPdf('blob')
         try {
             if (window.html2pdf && typeof window.html2pdf === 'function' && typeof window.html2pdf().set === 'function' && typeof window.html2pdf().from === 'function') {
-            const blob = await window.html2pdf().set(opt).from(element).outputPdf('blob');
+            // const blob = await window.html2pdf().set(opt).from(element).outputPdf('blob');
+
+            // inserir metadata no original antes de chamar html2pdf, para garantir mapeamento clone <- original
+            let __ap_prev_pos = null;
+            try {
+                __ap_prev_pos = attachMetadataToOriginal(element);
+            } catch(e){ __ap_prev_pos = null; }
+
+            try {
+                const blob = await window.html2pdf().set(opt).from(element).outputPdf('blob');
+                return blob;
+            } finally {
+                try { detachMetadataFromOriginal(element, __ap_prev_pos); } catch(e){ /* ignore */ }
+            }
+
+
             return blob;
             }
         } catch (err) {
@@ -1300,15 +1657,24 @@
 
         // fallback para versões antigas (0.9.x): gera e pega blob via Promise
         return await new Promise((resolve, reject) => {
+            let __ap_prev_pos = null;
+            try { __ap_prev_pos = attachMetadataToOriginal(element); } catch(e){ __ap_prev_pos = null; }
+
             try {
-            window.html2pdf().set(opt).from(element).toPdf().output('blob', (blob) => {
-                if (blob) resolve(blob);
-                else reject(new Error('Falha ao obter blob (fallback).'));
-            });
+                window.html2pdf().set(opt).from(element).toPdf().output('blob', (blob) => {
+                    try {
+                        if (blob) resolve(blob);
+                        else reject(new Error('Falha ao obter blob (fallback).'));
+                    } finally {
+                        try { detachMetadataFromOriginal(element, __ap_prev_pos); } catch(e){}
+                    }
+                });
             } catch (e) {
-            reject(new Error('Erro ao gerar PDF (fallback): ' + e.message));
+                try { detachMetadataFromOriginal(element, __ap_prev_pos); } catch(err){}
+                reject(new Error('Erro ao gerar PDF (fallback): ' + e.message));
             }
         });
+
     }
 
     function downloadPdfBlob(pdfBlob, filename = 'resultado-armario-perfeito.pdf') {
