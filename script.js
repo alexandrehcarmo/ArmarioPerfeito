@@ -1387,7 +1387,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                                 let pagePx = 1000;
                                 // em mobile pode ser útil um valor um pouco menor:
                                 if (window && window.innerWidth && window.innerWidth < 500) pagePx = 1000;
-                                const marginPx = 30; // margens top+bottom reservadas
+                                const marginPx = 20; // margens top+bottom reservadas
                                 const targetHeight = pagePx - marginPx;
 
                                 // função que mede e aplica zoom (usa clonedDoc.documentElement para leituras corretas)
@@ -1572,7 +1572,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 // ---------- Configurável: quanto empurrar para baixo (em px) ----------
                 // Aumente este valor para descer mais; diminua para subir.
                 // Ex.: 40, 60, 100, 160 ... teste iterando.
-                const marginTopPx = 05; // <-- ajuste este valor até ficar perfeito
+                const marginTopPx = 10; // <-- ajuste este valor até ficar perfeito
                 // --------------------------------------------------------------------
 
                 // estilos como bloco (vai empurrar o conteúdo abaixo)
@@ -1602,7 +1602,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                     const hdr = elem.querySelector('.final-results-header');
                     // adiciona um pequeno espaçamento para separar visualmente do título
                     meta.style.marginTop = '0';
-                    meta.style.marginBottom = '05px'; // ajuste este valor para aumentar/diminuir o espaço
+                    meta.style.marginBottom = '0'; // ajuste este valor para aumentar/diminuir o espaço
                     if (hdr && hdr.parentNode === elem) {
                         // inserir antes do header — empurra todo o conteúdo para baixo
                         elem.insertBefore(meta, hdr);
