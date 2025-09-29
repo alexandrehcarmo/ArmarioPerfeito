@@ -1734,6 +1734,71 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
+
+        // --- Ajuste responsivo para MOBILE antes de chamar html2pdf ---
+        (function adaptPdfForMobile(opt) {
+        try {
+            const isMobile = /Mobi|Android/i.test(navigator.userAgent) || (window.innerWidth || 0) < 700;
+            // calcula escala adaptativa: evita que DPR alto no mobile deixe tudo gigante
+            const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+            // padrão que tu já tem (por ex 3) — deixamos como fallback
+            const defaultScale = (opt && opt.html2canvas && opt.html2canvas.scale) ? opt.html2canvas.scale : 3;
+
+            if (!opt.html2canvas) opt.html2canvas = {};
+
+            if (isMobile) {
+            // reduz a escala de captura no mobile (menor => aparência menor no PDF)
+            opt.html2canvas.scale = Math.max(1, Math.round((defaultScale * 10 / dpr)) / 10); // ex: 3 -> 2.5/2 dependendo do dpr
+            } else {
+            // Desktop: mantém tua escolha original
+            opt.html2canvas.scale = defaultScale;
+            }
+
+            // preserva qualquer onclone já definido e o "empilha"
+            const userOnclone = opt.html2canvas.onclone;
+            opt.html2canvas.onclone = function (clonedDoc, element) {
+            // chama o onclone original primeiro (se existir)
+            try { if (typeof userOnclone === 'function') userOnclone(clonedDoc, element); } catch(e) { console.warn('userOnclone falhou', e); }
+
+            try {
+                // injeta estilos específicos para mobile no clone (só para a captura)
+                if (!clonedDoc.getElementById('ap-pdf-mobile-adjust')) {
+                const style = clonedDoc.createElement('style');
+                style.id = 'ap-pdf-mobile-adjust';
+
+                // Ajusta valores abaixo conforme necessário (testar 10/11/12 px até ficar ok)
+                style.appendChild(clonedDoc.createTextNode(`
+                    /* Base menor para o PDF quando gerado em mobile */
+                    html, body { font-size: 11px !important; line-height: 1.12 !important; }
+                    /* Títulos relativamente menores para evitar quebra e excesso de espaço */
+                    h1, .final-title, .diagnostico-title { font-size: 22px !important; }
+                    h2, .sub-title { font-size: 16px !important; }
+                    /* Garante que elementos grandes (ex.: .display-4) sejam reduzidos */
+                    .display-4, .big-title { font-size: 20px !important; }
+                    /* Ajustes finos de espaçamento */
+                    .section, .page-content-wrapper { margin-bottom: 6px !important; }
+                    /* Força quebra de palavras para evitar overflow no PDF */
+                    * { word-break: break-word !important; white-space: normal !important; }
+                `));
+                if (clonedDoc.head) clonedDoc.head.appendChild(style);
+                }
+
+                // opcional: reduzir tamanhos específicos que tu identificar nos testes
+                // ex: se o título principal continua gigante: 
+                // const h = clonedDoc.querySelector('.final-title'); if (h) h.style.fontSize = '20px';
+
+            } catch (e) {
+                console.warn('ap-pdf-mobile-adjust falhou:', e);
+            }
+            };
+
+            // (Opcional) log para debugging — remover depois de validar
+            console.info('PDF mobile adapt: isMobile=', isMobile, ' html2canvas.scale=', opt.html2canvas.scale);
+
+        } catch (e) { console.warn('adaptPdfForMobile erro', e); }
+        })(opt); // passe o objeto opt que já existe no teu código
+
+
         // --- AP: helpers para inserir/retirar metadata no elemento original DURANTE a geração ---
         function _apEscapeHtml(str){
             return (str||'').toString().replace(/[&<>"']/g, function(m){
