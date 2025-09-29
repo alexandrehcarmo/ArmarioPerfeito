@@ -62,6 +62,14 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         return `${day}${month}${year}`;
     }
 
+
+    // ---- AP: detecção mobile e fator de redução de fontes aplicável ao clone ----
+    const __AP_IS_MOBILE = /Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth || 0) < 700;
+    const __AP_MOBILE_FONT_SCALE = 0.58; // ajuste agressivo: 0.58 (aumente para 0.7 se ficar muito pequeno)
+    const __AP_MOBILE_MIN_FONT_PX = 10;   // não reduzir abaixo disso para manter legibilidade
+    // ---- fim detecção ----
+
+
     // === FUNÇÃO ONCLONE ROBUSTA PARA SANITIZAR O HTML PARA HTML2CANVAS ===
     // Adaptada do seu script original para lidar com CSS complexo e ocultar elementos indesejados.
     const customHtml2CanvasOnClone = (clonedDoc, originalElement) => {
@@ -85,47 +93,53 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
 
                 const cs = window.getComputedStyle(o);
 
-                // Preserve font-related properties e text-transform (corrige texto minúsculo no canvas)
-                try {
-                    if (cs.fontFamily) c.style.fontFamily = cs.fontFamily;
-                    if (cs.fontWeight) c.style.fontWeight = cs.fontWeight;
-                    if (cs.fontStyle) c.style.fontStyle = cs.fontStyle;
+            // Preserve font-related properties (com escala em MOBILE para evitar fontes gigantes no clone)
+            try {
+                if (cs.fontFamily) c.style.setProperty('font-family', cs.fontFamily, 'important');
+                if (cs.fontWeight) c.style.setProperty('font-weight', cs.fontWeight, 'important');
+                if (cs.fontStyle) c.style.setProperty('font-style', cs.fontStyle, 'important');
 
-                    if (cs.fontSize) {
-                        try {
-                            const fs = cs.fontSize || '';
-                            const n = parseFloat(fs);
-                            if (!isNaN(n)) {
-                                // aplica escala em mobile para evitar fontes gigantes no PDF
-                                const scaled = Math.max(10, Math.round(n * __ap_mobile_font_scale));
-                                c.style.fontSize = scaled + 'px';
-                            } else {
-                                c.style.fontSize = fs;
+                // Font-size: parse e reduza se estivermos em MOBILE (evita copiar tamanhos mobile enormes)
+                if (cs.fontSize) {
+                    try {
+                        const m = (cs.fontSize || '').match(/^([\d.]+)px$/);
+                        if (m) {
+                            let px = parseFloat(m[1]);
+                            if (__AP_IS_MOBILE) {
+                                px = Math.max(__AP_MOBILE_MIN_FONT_PX, Math.round(px * __AP_MOBILE_FONT_SCALE));
                             }
-                        } catch(e) {
-                            c.style.fontSize = cs.fontSize;
+                            c.style.setProperty('font-size', px + 'px', 'important');
+                        } else {
+                            // fallback: copia literal se não for px
+                            c.style.setProperty('font-size', cs.fontSize, 'important');
                         }
-                    }
-                    if (cs.lineHeight) {
-                        try {
-                            const lh = cs.lineHeight || '';
-                            // tenta normalizar line-height numérico ou em px
-                            const ln = parseFloat(lh);
-                            if (!isNaN(ln)) {
-                                const scaledLH = Math.max(1.0, (ln * __ap_mobile_font_scale));
-                                c.style.lineHeight = scaledLH + (lh.indexOf('px') !== -1 ? 'px' : '');
-                            } else {
-                                c.style.lineHeight = cs.lineHeight;
-                            }
-                        } catch(e) {
-                            c.style.lineHeight = cs.lineHeight;
-                        }
-                    }
+                    } catch (efs){}
+                }
 
-                    if (cs.letterSpacing) c.style.letterSpacing = cs.letterSpacing;
-                    if (cs.wordSpacing) c.style.wordSpacing = cs.wordSpacing;
-                    if (cs.textTransform) c.style.textTransform = cs.textTransform;
-                } catch(e) { /* ignore errors copying computed styles */ }
+                // Line-height: tenta ajustar proporcionalmente no mobile
+                if (cs.lineHeight) {
+                    try {
+                        // se for numérico (ex: "18px" ou "1.2"), tenta parse
+                        const m2 = (cs.lineHeight || '').match(/^([\d.]+)(px)?$/);
+                        if (m2) {
+                            let lh = parseFloat(m2[1]);
+                            if (__AP_IS_MOBILE && m2[2] === 'px') {
+                                // reduz levemente line-height em mobile quando em px
+                                const newLh = Math.max(1.02, Math.round(lh * 100 * 0.9) / 100);
+                                c.style.setProperty('line-height', newLh.toString(), 'important');
+                            } else {
+                                c.style.setProperty('line-height', cs.lineHeight, 'important');
+                            }
+                        } else {
+                            c.style.setProperty('line-height', cs.lineHeight, 'important');
+                        }
+                    } catch (elh){}
+                }
+
+                if (cs.letterSpacing) c.style.setProperty('letter-spacing', cs.letterSpacing, 'important');
+                if (cs.wordSpacing) c.style.setProperty('word-spacing', cs.wordSpacing, 'important');
+                if (cs.textTransform) c.style.setProperty('text-transform', cs.textTransform, 'important');
+            } catch(e) { /* ignore errors copying computed styles */ }
 
 
                 // Força cores e fundos seguros para evitar erros de html2canvas com funções modernas
@@ -1813,12 +1827,38 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                   'color','background-color','text-align','white-space','direction',
                   'text-rendering','-webkit-font-smoothing'
                 ];
-                props.forEach(p => {
-                  try {
-                    const v = cs.getPropertyValue(p) || cs[p.replace(/-([a-z])/g, (m,g)=>g.toUpperCase())];
-                    if (v) tgt.style.setProperty(p, v, 'important');
-                  } catch(e){}
-                });
+
+                
+                    try {
+                        let v = cs.getPropertyValue(p) || cs[p.replace(/-([a-z])/g, (m,g)=>g.toUpperCase())];
+                        if (!v) return;
+
+                        // --- detecção local (fallback caso as constantes globais não existam) ---
+                        const __AP_IS_MOBILE = (typeof __AP_IS_MOBILE !== 'undefined')
+                        ? __AP_IS_MOBILE
+                        : (/Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth||0) < 700);
+                        const __AP_MOBILE_FONT_SCALE = (typeof __AP_MOBILE_FONT_SCALE !== 'undefined')
+                        ? __AP_MOBILE_FONT_SCALE : 0.58;
+                        const __AP_MOBILE_MIN_FONT_PX = (typeof __AP_MOBILE_MIN_FONT_PX !== 'undefined')
+                        ? __AP_MOBILE_MIN_FONT_PX : 10;
+                        // --- fim detecção ---
+
+                        // intercepta font-size em MOBILE e reduz
+                        if (__AP_IS_MOBILE && p === 'font-size') {
+                        const mm = ('' + v).match(/^([\d.]+)px$/);
+                        if (mm) {
+                            const orig = parseFloat(mm[1]);
+                            const scaled = Math.max(__AP_MOBILE_MIN_FONT_PX, Math.round(orig * __AP_MOBILE_FONT_SCALE));
+                            v = scaled + 'px';
+                        }
+                        }
+
+                        tgt.style.setProperty(p, v, 'important');
+                    } catch(e){}
+                    
+
+
+
               } catch(e){}
 
                 // Forçar font-size mínimo para elementos de texto
@@ -1862,13 +1902,35 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                   const s = srcNodes[i], t = tgtNodes[i];
                   const cs = window.getComputedStyle(s);
 
-                  // copia propriedades críticas inline com !important
-                  props.forEach(p => {
-                      try {
-                      const v = cs.getPropertyValue(p);
-                      if (v) t.style.setProperty(p, v, 'important');
-                      } catch(e){}
-                  });
+                    props.forEach(p => {
+                        try {
+                            let v = cs.getPropertyValue(p) || cs[p.replace(/-([a-z])/g, (m,g)=>g.toUpperCase())];
+                            if (!v) return;
+
+                            // --- detecção local (fallback caso as constantes globais não existam) ---
+                            const __AP_IS_MOBILE = (typeof __AP_IS_MOBILE !== 'undefined')
+                            ? __AP_IS_MOBILE
+                            : (/Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth||0) < 700);
+                            const __AP_MOBILE_FONT_SCALE = (typeof __AP_MOBILE_FONT_SCALE !== 'undefined')
+                            ? __AP_MOBILE_FONT_SCALE : 0.58;
+                            const __AP_MOBILE_MIN_FONT_PX = (typeof __AP_MOBILE_MIN_FONT_PX !== 'undefined')
+                            ? __AP_MOBILE_MIN_FONT_PX : 10;
+                            // --- fim detecção ---
+
+                            // intercepta font-size em MOBILE e reduz
+                            if (__AP_IS_MOBILE && p === 'font-size') {
+                            const mm = ('' + v).match(/^([\d.]+)px$/);
+                            if (mm) {
+                                const orig = parseFloat(mm[1]);
+                                const scaled = Math.max(__AP_MOBILE_MIN_FONT_PX, Math.round(orig * __AP_MOBILE_FONT_SCALE));
+                                v = scaled + 'px';
+                            }
+                            }
+
+                            tgt.style.setProperty(p, v, 'important');
+                        } catch(e){}
+                        });
+
 
                   // se houver background-image com gradiente (possível uso de color() dentro), remova para evitar erro de parse
                   const bg = cs.getPropertyValue('background-image');
