@@ -1700,8 +1700,8 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                             meta.setAttribute('aria-hidden','true');
                             meta.setAttribute('style', [
                                 'position:absolute',
-                                'left:12px',
-                                'right:12px',
+                                'left:10px',
+                                'right:10px',
                                 'top:8px',
                                 'font-size:11px',
                                 'line-height:1.1',
@@ -1775,8 +1775,8 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 meta.style.zIndex = '99999';
                 meta.style.background = 'transparent';
                 meta.style.padding = '0';
-                meta.style.marginLeft = '12px';
-                meta.style.marginRight = '12px';
+                meta.style.marginLeft = '10px';
+                meta.style.marginRight = '10px';
 
                 const dateStr = (new Date()).toLocaleDateString();
                 meta.innerHTML = '<strong style="font-weight:600;margin-right:6px;">Nome:</strong>' + _apEscapeHtml(name) +
@@ -1944,10 +1944,10 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
 
                 // Forçar font-size mínimo para elementos de texto
                 if (['P','DIV','SPAN','LI','STRONG','B','EM','I'].includes(src.tagName)) {
-                    tgt.style.setProperty('font-size', '20px', 'important');
+                    tgt.style.setProperty('font-size', '16px', 'important');
                 }
                 if (['H1','H2','H3'].includes(src.tagName) || src.className.includes('final-title') || src.className.includes('diagnostico-title')) {
-                    tgt.style.setProperty('font-size', '28px', 'important');
+                    tgt.style.setProperty('font-size', '18px', 'important');
                 }
             }
 
@@ -2027,12 +2027,9 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 const safetyStyle = clonedDoc.createElement('style');
                 safetyStyle.textContent = `
                     /* Small adjustments only for the CLONE used to render PDF */
-
-                    html, body { font-size: 20px !important; line-height: 1.5 !important; color: #000 !important; } /* ALTERADO: de 18px para 20px, mais agressivo */
-                    * { font-size: 24px !important; }
-                    p, div, span, li, strong, b, em, i { font-size: 20px !important; line-height: 1.5 !important; } /* ALTERADO: seletor mais amplo, 20px para todo texto */
-                    h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 28px !important; font-weight: 700 !important; margin-bottom: 14px !important; } /* ALTERADO: de 24px para 28px */
-
+                    html, body { font-size: 16px !important; line-height: 1.5 !important; color: #000 !important; } 
+                    p, div, span, li, strong, b, em, i { font-size: 15px !important; line-height: 1.5 !important; } 
+                    h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 18px !important; font-weight: 600 !important; margin-bottom: 14px !important; } 
                     h1,h2,h3,h4 { page-break-after: avoid !important; break-after: avoid !important; }
                     p, ul, ol { page-break-inside: avoid !important; break-inside: avoid !important; }
                     img, img.logo, img.logo-topo, .logo { max-width: 160px !important; height: auto !important; display: block !important; }                                
@@ -2048,7 +2045,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                     const possibleTitle = Array.from(clonedDoc.querySelectorAll('h1,h2,h3,p,div')).find(n => /Diagn[áa]stico  de estilo finalizado/i.test(n.textContent));
                     if (possibleTitle) {
                         possibleTitle.style.textAlign = 'center';
-                        possibleTitle.style.fontSize = '24px'; // ALTERADO PARA AUMENTAR FONTE
+                        possibleTitle.style.fontSize = '20px'; // ALTERADO PARA AUMENTAR FONTE
                         possibleTitle.style.fontWeight = '600';
                         possibleTitle.style.marginBottom = '12px';
                     }
@@ -2057,7 +2054,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                     ['Estilo Primário','Estilo Secundário','Estilo Terciário'].forEach(lbl => {
                         const node = Array.from(clonedDoc.querySelectorAll('*')).find(n => new RegExp('\\b' + lbl.replace(/ /g,'\\s+') + '\\b','i').test(n.textContent || ''));
                         if (node) {
-                            node.style.fontSize = '20px'; // ALTERADO PARA AUMENTAR FONTE
+                            node.style.fontSize = '18px'; // ALTERADO PARA AUMENTAR FONTE
                             node.style.fontWeight = '600';
                             node.style.marginTop = '10px';
                             node.style.marginBottom = '6px';
