@@ -1450,12 +1450,19 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         const dateDDMMAA = getFormattedDateDDMMAA(today); // <-- Nova linha para obter a data formatada
 
         // opções html2pdf/html2canvas
+
+        // --- Ajuste dinâmico de scale para html2canvas (reduce em MOBILE)
+        const __ap_is_mobile = /Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth && window.innerWidth < 700);
+        const __ap_dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+        const __ap_default_scale = 3;
+        const __ap_scale = __ap_is_mobile ? Math.max(1, Math.round((__ap_default_scale * 10 / __ap_dpr)) / 10) : __ap_default_scale;
+
         const opt = {
             margin:       [05, 8, 10, 8],
             filename:     `Diagnostico_Estilo_${dateDDMMAA}.pdf`, // <-- Linha alterada
             image:        { type: 'jpeg', quality: 0.95 },
             html2canvas:  { 
-                scale: 3, // <-- ALTERADO de 2 para 3 para maior nitidez
+                scale: __ap_scale, // <-- ALTERADO de 2 para 3 para maior nitidez
                 useCORS: true, 
                 logging: false,
                 // onclone sanitiza o documento clonado antes do html2canvas tentar parsear CSS
@@ -1695,6 +1702,29 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                                 if (clonedDoc.head) clonedDoc.head.appendChild(s); else attachTo.insertBefore(s, attachTo.firstChild);
                             } catch(e){ /* ignore */ }
 
+                    // --- INJEÇÃO: ajuste específico para MOBILE (aplica-se ao documento CLONADO usado para html2canvas)
+                    try {
+                        const win = clonedDoc.defaultView || window;
+                        const isMobileClone = /Mobi|Android/i.test(win.navigator.userAgent || '') || (win.innerWidth && win.innerWidth < 700);
+                        if (isMobileClone && !clonedDoc.getElementById('ap-pdf-mobile-adjust')) {
+                            const mstyle = clonedDoc.createElement('style');
+                            mstyle.id = 'ap-pdf-mobile-adjust';
+                            mstyle.appendChild(clonedDoc.createTextNode(`
+                                /* Força redução de fontes apenas no clone para evitar quebras no PDF gerado a partir de MOBILE */
+                                html, body { font-size: 11px !important; line-height: 1.08 !important; }
+                                /* Reduz títulos grandes e display styles */
+                                h1, h2, .final-title, .display-4, .big-title { font-size: 20px !important; line-height:1.06 !important; }
+                                h3, h4, .sub-title { font-size: 14px !important; }
+                                /* Ajustes finos de espaçamento e margens */
+                                .section, .page-content-wrapper { margin-bottom: 6px !important; padding-bottom: 0 !important; }
+                                /* Evita overflow de texto */
+                                * { word-break: break-word !important; white-space: normal !important; overflow-wrap: break-word !important; }
+                            `));
+                            if (clonedDoc.head) clonedDoc.head.appendChild(mstyle);
+                        }
+                    } catch(e) { console.warn('ap-pdf-mobile-adjust failed', e); }
+
+
                             const meta = clonedDoc.createElement('div');
                             meta.id = 'ap-pdf-metadata';
                             meta.setAttribute('aria-hidden','true');
@@ -1733,71 +1763,6 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
-
-
-        // --- Ajuste responsivo para MOBILE antes de chamar html2pdf ---
-        (function adaptPdfForMobile(opt) {
-        try {
-            const isMobile = /Mobi|Android/i.test(navigator.userAgent) || (window.innerWidth || 0) < 700;
-            // calcula escala adaptativa: evita que DPR alto no mobile deixe tudo gigante
-            const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
-            // padrão que tu já tem (por ex 3) — deixamos como fallback
-            const defaultScale = (opt && opt.html2canvas && opt.html2canvas.scale) ? opt.html2canvas.scale : 3;
-
-            if (!opt.html2canvas) opt.html2canvas = {};
-
-            if (isMobile) {
-            // reduz a escala de captura no mobile (menor => aparência menor no PDF)
-            opt.html2canvas.scale = Math.max(1, Math.round((defaultScale * 10 / dpr)) / 10); // ex: 3 -> 2.5/2 dependendo do dpr
-            } else {
-            // Desktop: mantém tua escolha original
-            opt.html2canvas.scale = defaultScale;
-            }
-
-            // preserva qualquer onclone já definido e o "empilha"
-            const userOnclone = opt.html2canvas.onclone;
-            opt.html2canvas.onclone = function (clonedDoc, element) {
-            // chama o onclone original primeiro (se existir)
-            try { if (typeof userOnclone === 'function') userOnclone(clonedDoc, element); } catch(e) { console.warn('userOnclone falhou', e); }
-
-            try {
-                // injeta estilos específicos para mobile no clone (só para a captura)
-                if (!clonedDoc.getElementById('ap-pdf-mobile-adjust')) {
-                const style = clonedDoc.createElement('style');
-                style.id = 'ap-pdf-mobile-adjust';
-
-                // Ajusta valores abaixo conforme necessário (testar 10/11/12 px até ficar ok)
-                style.appendChild(clonedDoc.createTextNode(`
-                    /* Base menor para o PDF quando gerado em mobile */
-                    html, body { font-size: 11px !important; line-height: 1.12 !important; }
-                    /* Títulos relativamente menores para evitar quebra e excesso de espaço */
-                    h1, .final-title, .diagnostico-title { font-size: 22px !important; }
-                    h2, .sub-title { font-size: 16px !important; }
-                    /* Garante que elementos grandes (ex.: .display-4) sejam reduzidos */
-                    .display-4, .big-title { font-size: 20px !important; }
-                    /* Ajustes finos de espaçamento */
-                    .section, .page-content-wrapper { margin-bottom: 6px !important; }
-                    /* Força quebra de palavras para evitar overflow no PDF */
-                    * { word-break: break-word !important; white-space: normal !important; }
-                `));
-                if (clonedDoc.head) clonedDoc.head.appendChild(style);
-                }
-
-                // opcional: reduzir tamanhos específicos que tu identificar nos testes
-                // ex: se o título principal continua gigante: 
-                // const h = clonedDoc.querySelector('.final-title'); if (h) h.style.fontSize = '20px';
-
-            } catch (e) {
-                console.warn('ap-pdf-mobile-adjust falhou:', e);
-            }
-            };
-
-            // (Opcional) log para debugging — remover depois de validar
-            console.info('PDF mobile adapt: isMobile=', isMobile, ' html2canvas.scale=', opt.html2canvas.scale);
-
-        } catch (e) { console.warn('adaptPdfForMobile erro', e); }
-        })(opt); // passe o objeto opt que já existe no teu código
-
 
         // --- AP: helpers para inserir/retirar metadata no elemento original DURANTE a geração ---
         function _apEscapeHtml(str){
