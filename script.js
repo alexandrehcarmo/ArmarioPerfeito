@@ -184,7 +184,7 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
                 
                 h1, h2, .final-title, .diagnostico-title { 
                     text-align: center !important; 
-                    font-size: 16px !important; /* Títulos 16px para melhor visibilidade */ // <-- Alterado de 14px para 16px
+                    font-size: 14px !important; 
                     font-weight: bold !important; 
                     margin-bottom: 3px !important; 
                     margin-top: 8px !important; 
@@ -757,7 +757,7 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         finalDiv.innerHTML     = html;
         // Adiciona controles de exportação ao topo do resultado (botão imprimir/baixar PDF)
         finalDiv.innerHTML = `
-            <div class="result-export-controls" style="display:flex;justify-content:flex-end;gap:12px;margin-bottom:18px;">
+            <div class="result-export-controls" style="display:flex;justify-content:flex-end;gap:12px;margin-bottom:14px;">
                 <button id="btn-download-pdf" class="btn btn-outline-secondary" title="Baixar / Imprimir resultado">Baixar PDF</button>
             </div>
         ` + finalDiv.innerHTML;
@@ -1597,7 +1597,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                                 html, body { height: auto !important; overflow: visible !important; margin: 0; padding: 8px; }
                                 body { font-size: 13px !important; line-height: 1.2 !important; color: #000 !important; }
                                 /* Title styling fallback — se for h1/h2/p com esse texto, será maior via JS abaixo */
-                                h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 18px !important; font-weight: 600 !important; margin-bottom: 12px !important; }
+                                h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 16px !important; font-weight: 600 !important; margin-bottom: 12px !important; }
                                 h1,h2,h3,h4 { page-break-after: avoid !important; break-after: avoid !important; }
                                 p, ul, ol { page-break-inside: avoid !important; break-inside: avoid !important; }
                                 img, img.logo, img.logo-topo, .logo { max-width: 160px !important; height: auto !important; display: block !important; }                                
@@ -1622,7 +1622,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                                 ['Estilo Primário','Estilo Secundário','Estilo Terciário'].forEach(lbl => {
                                     const node = Array.from(clonedDoc.querySelectorAll('*')).find(n => new RegExp('\\b' + lbl.replace(/ /g,'\\s+') + '\\b','i').test(n.textContent || ''));
                                     if (node) {
-                                        node.style.fontSize = '15px';
+                                        node.style.fontSize = '14px';
                                         node.style.fontWeight = '600';
                                         node.style.marginTop = '10px';
                                         node.style.marginBottom = '6px';
@@ -1944,10 +1944,10 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
 
                 // Forçar font-size mínimo para elementos de texto
                 if (['P','DIV','SPAN','LI','STRONG','B','EM','I'].includes(src.tagName)) {
-                    tgt.style.setProperty('font-size', '16px', 'important');
+                    tgt.style.setProperty('font-size', '14px', 'important');
                 }
                 if (['H1','H2','H3'].includes(src.tagName) || src.className.includes('final-title') || src.className.includes('diagnostico-title')) {
-                    tgt.style.setProperty('font-size', '18px', 'important');
+                    tgt.style.setProperty('font-size', '16px', 'important');
                 }
             }
 
@@ -2027,9 +2027,9 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 const safetyStyle = clonedDoc.createElement('style');
                 safetyStyle.textContent = `
                     /* Small adjustments only for the CLONE used to render PDF */
-                    html, body { font-size: 16px !important; line-height: 1.5 !important; color: #000 !important; } 
-                    p, div, span, li, strong, b, em, i { font-size: 15px !important; line-height: 1.5 !important; } 
-                    h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 18px !important; font-weight: 600 !important; margin-bottom: 14px !important; } 
+                    html, body { font-size: 15px !important; line-height: 1.5 !important; color: #000 !important; } 
+                    p, div, span, li, strong, b, em, i { font-size: 14px !important; line-height: 1.5 !important; } 
+                    h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 16px !important; font-weight: 600 !important; margin-bottom: 12px !important; } 
                     h1,h2,h3,h4 { page-break-after: avoid !important; break-after: avoid !important; }
                     p, ul, ol { page-break-inside: avoid !important; break-inside: avoid !important; }
                     img, img.logo, img.logo-topo, .logo { max-width: 160px !important; height: auto !important; display: block !important; }                                
@@ -2045,16 +2045,16 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                     const possibleTitle = Array.from(clonedDoc.querySelectorAll('h1,h2,h3,p,div')).find(n => /Diagn[áa]stico  de estilo finalizado/i.test(n.textContent));
                     if (possibleTitle) {
                         possibleTitle.style.textAlign = 'center';
-                        possibleTitle.style.fontSize = '20px'; // ALTERADO PARA AUMENTAR FONTE
+                        possibleTitle.style.fontSize = '16px'; 
                         possibleTitle.style.fontWeight = '600';
-                        possibleTitle.style.marginBottom = '12px';
+                        possibleTitle.style.marginBottom = '6px';
                     }
 
                     // realçar rótulos "Estilo Primário", "Estilo Secundário", "Estilo Terciário"
                     ['Estilo Primário','Estilo Secundário','Estilo Terciário'].forEach(lbl => {
                         const node = Array.from(clonedDoc.querySelectorAll('*')).find(n => new RegExp('\\b' + lbl.replace(/ /g,'\\s+') + '\\b','i').test(n.textContent || ''));
                         if (node) {
-                            node.style.fontSize = '18px'; // ALTERADO PARA AUMENTAR FONTE
+                            node.style.fontSize = '16px'; 
                             node.style.fontWeight = '600';
                             node.style.marginTop = '10px';
                             node.style.marginBottom = '6px';
@@ -2069,7 +2069,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 s.type = 'text/css';
                 s.appendChild(clonedDoc.createTextNode("\
                     /* AP metadata styling (absolute top, não altera fluxo) */\n\
-                    #ap-pdf-metadata { position: absolute !important; left: 16px !important; right: 16px !important; top: 8px !important; font-size:18px !important; line-height:1.1 !important; color:#222 !important; text-align:left !important; z-index:99999 !important; background:transparent !important; padding:0 !important; margin:0 !important; } // ALTERADO PARA AUMENTAR FONTE\n\
+                    #ap-pdf-metadata { position: absolute !important; left: 14px !important; right: 14px !important; top: 8px !important; font-size:14px !important; line-height:1.1 !important; color:#222 !important; text-align:left !important; z-index:99999 !important; background:transparent !important; padding:0 !important; margin:0 !important; } // ALTERADO PARA AUMENTAR FONTE\n\
                 "));
                 if (clonedDoc.head) clonedDoc.head.appendChild(s); else attachTo.insertBefore(s, attachTo.firstChild);
             } catch(e){ /* ignore */ }
