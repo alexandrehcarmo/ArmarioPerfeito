@@ -266,7 +266,7 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         try {
             await loadScriptOnce(cdn, 'html2pdf-lib');
             // aguarda microtick para garantir binding global
-            await new Promise(r => setTimeout(r, 20));
+            await new Promise(r => setTimeout(r, 40));
             if (window.html2pdf && typeof window.html2pdf === 'function') return;
             throw new Error('html2pdf carregado mas não expõe função global html2pdf');
         } catch (err) {
@@ -274,7 +274,7 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
             const fallback = 'https://unpkg.com/html2pdf.js@0.9.2/dist/html2pdf.bundle.js';
             try {
             await loadScriptOnce(fallback, 'html2pdf-fallback');
-            await new Promise(r => setTimeout(r, 20));
+            await new Promise(r => setTimeout(r, 40));
             if (window.html2pdf && typeof window.html2pdf === 'function') return;
             throw new Error('fallback carregado mas html2pdf não disponível');
             } catch (err2) {
@@ -1286,7 +1286,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         }
 
         // Adicione AQUI o delay para garantir renderização
-        await new Promise(resolve => setTimeout(resolve, 800)); // Pequeno delay para garantir renderização
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Pequeno delay para garantir renderização
 
         // Coleta os dados do usuário e resultados do teste
         const nome = sessionStorage.getItem('ap_name') || 'Nome não informado';
@@ -1371,7 +1371,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                     void finalResultEl.offsetHeight;
                     // Delay curto para browser aplicar fontes/estilos (requestAnimationFrame > setTimeout para sync com render)
                     await new Promise(resolve => requestAnimationFrame(resolve));
-                    await new Promise(resolve => setTimeout(resolve, 800)); // Ajuste para 800 se ainda falhar; >500 não resolveu sozinho, mas com reflow sim
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Ajuste para 800 se ainda falhar; >500 não resolveu sozinho, mas com reflow sim
 
                     resetVisibility = styleBefore;
                 }
@@ -1385,7 +1385,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         
 
             // Aguarda webfonts carregarem (só adicionar 1 linha antes de html2canvas) 15:40
-            if (document.fonts && document.fonts.ready) await Promise.race([document.fonts.ready, new Promise(r=>setTimeout(r,5000))]);
+            if (document.fonts && document.fonts.ready) await Promise.race([document.fonts.ready, new Promise(r=>setTimeout(r,8000))]);
 
             // Checagem extra: se fonts não loaded após wait, loga warn mas prossegue
             if (document.fonts && document.fonts.status !== 'loaded') {
@@ -1871,11 +1871,24 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    setTimeout(() => URL.revokeObjectURL(url), 2500);
     }
 
 
     /* --- Patch mínimo (append) para preservar fonts/text-transform antes do html2canvas
+   Cole ESTE bloco EXATAMENTE no final do seu script.js (apenas append). 
+   Ele não remove nem substitui handlers existentes: só "envolve" html2canvas.
+/* --- Patch mínimo (append) para preservar fonts/text-transform antes do html2canvas
+   Cole ESTE bloco EXATAMENTE no final do seu script.js (apenas append). 
+   Ele não remove nem substitui handlers existentes: só "envolve" html2canvas.
+*/
+
+/* --- Patch mínimo (append) para preservar fonts/text-transform antes do html2canvas
+   Cole ESTE bloco EXATAMENTE no final do seu script.js (apenas append). 
+   Ele não remove nem substitui handlers existentes: só "envolve" html2canvas.
+*/
+
+/* --- Patch mínimo (append) para preservar fonts/text-transform antes do html2canvas
    Cole ESTE bloco EXATAMENTE no final do seu script.js (apenas append). 
    Ele não remove nem substitui handlers existentes: só "envolve" html2canvas.
 */
@@ -1928,6 +1941,14 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                   } catch(e){}
                 });
               } catch(e){}
+
+                // Forçar font-size mínimo para elementos de texto
+                if (['P','DIV','SPAN','LI','STRONG','B','EM','I'].includes(src.tagName)) {
+                    tgt.style.setProperty('font-size', '20px', 'important');
+                }
+                if (['H1','H2','H3'].includes(src.tagName) || src.className.includes('final-title') || src.className.includes('diagnostico-title')) {
+                    tgt.style.setProperty('font-size', '28px', 'important');
+                }
             }
 
             // 3) copiar estilos node-a-node entre o elemento original e o clone (heurística por índice)
@@ -1939,6 +1960,123 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 try { copyCriticalStyles(srcNodes[i], tgtNodes[i]); } catch(e){}
               }
             }
+
+            // === FORÇA: copia styles críticos do original para o clone e remove gradients incompatíveis === 15:40
+            try {
+              // detecta raiz original e raiz do clone
+              const srcRoot = element; // Use 'element' (parâmetro passado para html2canvas), pois 'finalResultEl' é local e não disponível aqui
+              const cloneRoot = clonedDoc.getElementById(srcRoot.id) ||
+                                clonedDoc.querySelector(srcRoot.className?.split(' ')[0] ? '.'+srcRoot.className.split(' ')[0] : null) ||
+                                clonedDoc.body;
+
+              const srcNodes = srcRoot.querySelectorAll('*');
+              const tgtNodes = cloneRoot ? cloneRoot.querySelectorAll('*') : clonedDoc.querySelectorAll('*');
+              const len = Math.min(srcNodes.length, tgtNodes.length);
+
+              const props = ['font-family','font-weight','font-style','font-size','line-height','letter-spacing','word-spacing','text-transform','color','background-color','text-align'];
+
+              for (let i = 0; i < len; i++) {
+                  try {
+                  const s = srcNodes[i], t = tgtNodes[i];
+                  const cs = window.getComputedStyle(s);
+
+                  // copia propriedades críticas inline com !important
+                  props.forEach(p => {
+                      try {
+                      const v = cs.getPropertyValue(p);
+                      if (v) t.style.setProperty(p, v, 'important');
+                      } catch(e){}
+                  });
+
+                  // se houver background-image com gradiente (possível uso de color() dentro), remova para evitar erro de parse
+                  const bg = cs.getPropertyValue('background-image');
+                  if (bg && bg !== 'none' && /gradient|color\(/i.test(bg)) {
+                      t.style.setProperty('background-image', 'none', 'important');
+                      // aplica background-color calculado como fallback
+                      const bc = cs.getPropertyValue('background-color');
+                      if (bc && bc !== 'rgba(0, 0, 0, 0)') t.style.setProperty('background-color', bc, 'important');
+                  }
+                  } catch(e){}
+              }
+            } catch(e){ console.warn('onclone: force-copy-styles failed', e); }
+
+            // Ensure cloned html/body have no background gradients or large paddings that push an extra page
+            const clonedHtml = clonedDoc.querySelector('html');
+            const clonedBody = clonedDoc.querySelector('body');
+            if (clonedHtml) {
+                clonedHtml.style.backgroundImage = 'none';
+                clonedHtml.style.backgroundColor = '#ffffff';
+                clonedHtml.style.height = 'auto';
+            }
+            if (clonedBody) {
+                clonedBody.style.backgroundImage = 'none';
+                clonedBody.style.backgroundColor = '#ffffff';
+                clonedBody.style.height = 'auto';
+                clonedBody.style.paddingBottom = '0px';
+                clonedBody.style.overflow = 'visible';
+            }
+            try {
+                const last = clonedBody && clonedBody.lastElementChild;
+                if (last && last.tagName === 'DIV' && last.textContent.trim().length === 0 && last.querySelectorAll('img').length === 0) {
+                    last.remove();
+                }
+            } catch (e) { /* ignore */ }
+
+            // Inject a small safety style into the clone to avoid forced page-breaks or extra margins
+            try {
+                const safetyStyle = clonedDoc.createElement('style');
+                safetyStyle.textContent = `
+                    /* Small adjustments only for the CLONE used to render PDF */
+
+                    html, body { font-size: 20px !important; line-height: 1.5 !important; color: #000 !important; } /* ALTERADO: de 18px para 20px, mais agressivo */
+                    * { font-size: 24px !important; }
+                    p, div, span, li, strong, b, em, i { font-size: 20px !important; line-height: 1.5 !important; } /* ALTERADO: seletor mais amplo, 20px para todo texto */
+                    h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 28px !important; font-weight: 700 !important; margin-bottom: 14px !important; } /* ALTERADO: de 24px para 28px */
+
+                    h1,h2,h3,h4 { page-break-after: avoid !important; break-after: avoid !important; }
+                    p, ul, ol { page-break-inside: avoid !important; break-inside: avoid !important; }
+                    img, img.logo, img.logo-topo, .logo { max-width: 160px !important; height: auto !important; display: block !important; }                                
+                    .logo-topo { margin: 0 0 12px 0 !important; }
+                    .result-export-controls, #btn-download-pdf, #download-pdf { display: none !important; }
+                    * { box-sizing: border-box !important; -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
+                `;
+                if (clonedDoc.head) clonedDoc.head.appendChild(safetyStyle);
+
+                // --- Ajustes finais no clone: centralizar título detectando o texto e destacar rótulos ---
+                try {
+                    // centraliza e aumenta o título que contém "Diagnóstico de estilo finalizado"
+                    const possibleTitle = Array.from(clonedDoc.querySelectorAll('h1,h2,h3,p,div')).find(n => /Diagn[áa]stico  de estilo finalizado/i.test(n.textContent));
+                    if (possibleTitle) {
+                        possibleTitle.style.textAlign = 'center';
+                        possibleTitle.style.fontSize = '24px'; // ALTERADO PARA AUMENTAR FONTE
+                        possibleTitle.style.fontWeight = '600';
+                        possibleTitle.style.marginBottom = '12px';
+                    }
+
+                    // realçar rótulos "Estilo Primário", "Estilo Secundário", "Estilo Terciário"
+                    ['Estilo Primário','Estilo Secundário','Estilo Terciário'].forEach(lbl => {
+                        const node = Array.from(clonedDoc.querySelectorAll('*')).find(n => new RegExp('\\b' + lbl.replace(/ /g,'\\s+') + '\\b','i').test(n.textContent || ''));
+                        if (node) {
+                            node.style.fontSize = '20px'; // ALTERADO PARA AUMENTAR FONTE
+                            node.style.fontWeight = '600';
+                            node.style.marginTop = '10px';
+                            node.style.marginBottom = '6px';
+                        }
+                    });
+                } catch (e) { /* não quebra se falhar */ }
+            } catch (e) { /* ignore */ }
+
+            // inserir style mínimo no head do clone (opcional, reforça comportamento) para metadata
+            try {
+                const s = clonedDoc.createElement('style');
+                s.type = 'text/css';
+                s.appendChild(clonedDoc.createTextNode("\
+                    /* AP metadata styling (absolute top, não altera fluxo) */\n\
+                    #ap-pdf-metadata { position: absolute !important; left: 16px !important; right: 16px !important; top: 8px !important; font-size:18px !important; line-height:1.1 !important; color:#222 !important; text-align:left !important; z-index:99999 !important; background:transparent !important; padding:0 !important; margin:0 !important; } // ALTERADO PARA AUMENTAR FONTE\n\
+                "));
+                if (clonedDoc.head) clonedDoc.head.appendChild(s); else attachTo.insertBefore(s, attachTo.firstChild);
+            } catch(e){ /* ignore */ }
+
           } catch(e){
             console.warn('Patch html2canvas: erro em onclone:', e);
           }
@@ -1948,45 +2086,6 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
           }
         };
 
-        // === FORÇA: copia styles críticos do original para o clone e remove gradients incompatíveis === 15:40
-        try {
-        // detecta raiz original e raiz do clone
-        const srcRoot = element; // Use 'element' (parâmetro passado para html2canvas), pois 'finalResultEl' é local e não disponível aqui
-        const cloneRoot = clonedDoc.getElementById(srcRoot.id) ||
-                            clonedDoc.querySelector(srcRoot.className?.split(' ')[0] ? '.'+srcRoot.className.split(' ')[0] : null) ||
-                            clonedDoc.body;
-
-        const srcNodes = srcRoot.querySelectorAll('*');
-        const tgtNodes = cloneRoot ? cloneRoot.querySelectorAll('*') : clonedDoc.querySelectorAll('*');
-        const len = Math.min(srcNodes.length, tgtNodes.length);
-
-        const props = ['font-family','font-weight','font-style','font-size','line-height','letter-spacing','word-spacing','text-transform','color','background-color','text-align'];
-
-        for (let i = 0; i < len; i++) {
-            try {
-            const s = srcNodes[i], t = tgtNodes[i];
-            const cs = window.getComputedStyle(s);
-
-            // copia propriedades críticas inline com !important
-            props.forEach(p => {
-                try {
-                const v = cs.getPropertyValue(p);
-                if (v) t.style.setProperty(p, v, 'important');
-                } catch(e){}
-            });
-
-            // se houver background-image com gradiente (possível uso de color() dentro), remova para evitar erro de parse
-            const bg = cs.getPropertyValue('background-image');
-            if (bg && bg !== 'none' && /gradient|color\(/i.test(bg)) {
-                t.style.setProperty('background-image', 'none', 'important');
-                // aplica background-color calculado como fallback
-                const bc = cs.getPropertyValue('background-color');
-                if (bc && bc !== 'rgba(0, 0, 0, 0)') t.style.setProperty('background-color', bc, 'important');
-            }
-            } catch(e){}
-        }
-        } catch(e){ console.warn('onclone: force-copy-styles failed', e); }
-
         // Aguarda fonts (se existirem) antes de chamar a versão original.
         // Retornamos a Promise que html2canvas normalmente retorna.
         return (async function(){
@@ -1994,7 +2093,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             if (document.fonts && document.fonts.ready) {
               // timeout extra curto para evitar bloqueio indefinido (fallback 3s)
               const fontsPromise = document.fonts.ready;
-              await Promise.race([fontsPromise, new Promise(r=>setTimeout(r, 5000))]);
+              await Promise.race([fontsPromise, new Promise(r=>setTimeout(r, 30000))]); // ALTERADO PARA AUMENTAR TIMEOUT (de 8000 para 12000)
             }
             // também aguardamos imagens do element (curto) — evita capturar placeholders
             try {
@@ -2004,7 +2103,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 img.addEventListener('load', ()=>res(), {once:true});
                 img.addEventListener('error', ()=>res(), {once:true});
                 // safety timeout
-                setTimeout(res, 2000);
+                setTimeout(res, 4000);
               })));
             } catch(e){}
           } catch(e){}
