@@ -1944,10 +1944,13 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
 
                 // Forçar font-size mínimo para elementos de texto
                 if (['P','DIV','SPAN','LI','STRONG','B','EM','I'].includes(src.tagName)) {
-                    tgt.style.setProperty('font-size', '14px', 'important');
+                    tgt.style.setProperty('font-size', '11px', 'important');
                 }
                 if (['H1','H2','H3'].includes(src.tagName) || src.className.includes('final-title') || src.className.includes('diagnostico-title')) {
-                    tgt.style.setProperty('font-size', '16px', 'important');
+                    tgt.style.setProperty('font-size', '14px', 'important');
+                }
+                if (window.innerWidth < 768) {
+                    tgt.style.setProperty('font-size', '10px', 'important'); /* Para texto no mobile */
                 }
             }
 
