@@ -66,6 +66,10 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
     // Adaptada do seu script original para lidar com CSS complexo e ocultar elementos indesejados.
     const customHtml2CanvasOnClone = (clonedDoc, originalElement) => {
         try {
+            // --- Ajuste: detectar MOBILE e definir escala de fonte para o clone
+            const __ap_is_mobile_clone = /Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth && window.innerWidth < 700);
+            const __ap_mobile_font_scale = __ap_is_mobile_clone ? 0.58 : 1.0; /* ajuste fino: 0.5-0.7 para mobile */
+
             if (!originalElement) {
                 console.warn('onclone: elemento original (element) não encontrado — abortando sanitização do clone.');
                 return;
@@ -86,8 +90,38 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
                     if (cs.fontFamily) c.style.fontFamily = cs.fontFamily;
                     if (cs.fontWeight) c.style.fontWeight = cs.fontWeight;
                     if (cs.fontStyle) c.style.fontStyle = cs.fontStyle;
-                    if (cs.fontSize) c.style.fontSize = cs.fontSize;
-                    if (cs.lineHeight) c.style.lineHeight = cs.lineHeight;
+
+                    if (cs.fontSize) {
+                        try {
+                            const fs = cs.fontSize || '';
+                            const n = parseFloat(fs);
+                            if (!isNaN(n)) {
+                                // aplica escala em mobile para evitar fontes gigantes no PDF
+                                const scaled = Math.max(10, Math.round(n * __ap_mobile_font_scale));
+                                c.style.fontSize = scaled + 'px';
+                            } else {
+                                c.style.fontSize = fs;
+                            }
+                        } catch(e) {
+                            c.style.fontSize = cs.fontSize;
+                        }
+                    }
+                    if (cs.lineHeight) {
+                        try {
+                            const lh = cs.lineHeight || '';
+                            // tenta normalizar line-height numérico ou em px
+                            const ln = parseFloat(lh);
+                            if (!isNaN(ln)) {
+                                const scaledLH = Math.max(1.0, (ln * __ap_mobile_font_scale));
+                                c.style.lineHeight = scaledLH + (lh.indexOf('px') !== -1 ? 'px' : '');
+                            } else {
+                                c.style.lineHeight = cs.lineHeight;
+                            }
+                        } catch(e) {
+                            c.style.lineHeight = cs.lineHeight;
+                        }
+                    }
+
                     if (cs.letterSpacing) c.style.letterSpacing = cs.letterSpacing;
                     if (cs.wordSpacing) c.style.wordSpacing = cs.wordSpacing;
                     if (cs.textTransform) c.style.textTransform = cs.textTransform;
