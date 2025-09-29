@@ -1491,312 +1491,127 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         const __ap_default_scale = 3;
         const __ap_scale = __ap_is_mobile ? Math.max(1, Math.round((__ap_default_scale * 10 / __ap_dpr)) / 10) : __ap_default_scale;
 
+        // ---- INÍCIO: substitui aqui toda a definição de opt / html2canvas.onclone / chamada html2pdf ----
+        (function generatePdfWithMobileFix(element) {
+        // elemento de origem (ajusta se o teu código usa outro nome)
+        const srcEl = element || document.querySelector('.page-content-wrapper') || document.body;
+
+        // Detecta mobile / DPR / escala segura
+        const __isMobile = /Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth || 0) < 700;
+        const __dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+        const __defaultScale = 3;
+        const __scale = __isMobile ? Math.max(1, Math.round((__defaultScale * 10 / __dpr)) / 10) : __defaultScale;
+
+        // Opções para html2pdf/html2canvas/jsPDF
         const opt = {
-            margin:       [05, 8, 10, 8],
-            filename:     `Diagnostico_Estilo_${dateDDMMAA}.pdf`, // <-- Linha alterada
-            image:        { type: 'jpeg', quality: 0.95 },
-            html2canvas:  { 
-                scale: __ap_scale, // <-- ALTERADO de 2 para 3 para maior nitidez
-                useCORS: true, 
-                logging: false,
-                // onclone sanitiza o documento clonado antes do html2canvas tentar parsear CSS
-                onclone: (clonedDoc) => {
+            margin:       0.5, 
+            filename:     'document.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  {
+            scale: __scale,
+            useCORS: true,
+            allowTaint: false,
+            // onclone: override robusto que força redução de fontes no CLONE (após qualquer cópia de estilos)
+            onclone: function (clonedDoc, originalElement) {
+                try {
+                console.info('AP_PDF: onclone START', { isMobile: __isMobile, scale: __scale });
 
-                    onclone: (document, element) => {
-                        console.log('onclone chamado, elemento:', element);
-                        if (!element) {
-                            console.error('Elemento não recebido no onclone');
-                            return;
-                        }
-                        // Resto do código de onclone
-                    }
+                const win = clonedDoc.defaultView || window;
 
-
-                    try {
-                        // proteção: garante que o elemento original existe
-                        if (typeof element === 'undefined' || !element) {
-                            console.warn('onclone: elemento original (element) não encontrado — abortando sanitização do clone.');
-                            return;
-                        }
-                        // pega lista de elementos do original e do clone na mesma ordem
-                        const originals = element.querySelectorAll('*');
-                        const clones = clonedDoc.querySelectorAll('*');
-
-                        const len = Math.min(originals.length, clones.length);
-                        for (let i = 0; i < len; i++) {
-                            const o = originals[i];
-                            const c = clones[i];
-                            if (!o || !c) continue;
-
-                            const cs = window.getComputedStyle(o);
-
-
-                            // Dentro do loop onclone, logo após `const cs = window.getComputedStyle(o);`
-                            try {
-                            // propriedades de fonte / texto que devem ser preservadas
-                            if (cs.fontFamily) c.style.fontFamily = cs.fontFamily;
-                            if (cs.fontWeight) c.style.fontWeight = cs.fontWeight;
-                            if (cs.fontStyle) c.style.fontStyle = cs.fontStyle;
-                            if (cs.fontSize) c.style.fontSize = cs.fontSize;
-                            if (cs.lineHeight) c.style.lineHeight = cs.lineHeight;
-                            if (cs.letterSpacing) c.style.letterSpacing = cs.letterSpacing;
-                            if (cs.wordSpacing) c.style.wordSpacing = cs.wordSpacing;
-                            if (cs.textTransform) c.style.textTransform = cs.textTransform; // preserva UPPERCASE/LOWERCASE
-                            if (cs.textDecoration) c.style.textDecoration = cs.textDecoration;
-                            if (cs.textAlign) c.style.textAlign = cs.textAlign;
-                            if (cs.whiteSpace) c.style.whiteSpace = cs.whiteSpace;
-                            if (cs.direction) c.style.direction = cs.direction;
-
-                            // Também força cor/weight quando houver
-                            if (cs.color) c.style.color = cs.color;
-                            if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') c.style.backgroundColor = cs.backgroundColor;
-                            } catch(e){ /* ignore */ }
-
-
-                            // força valores seguros (resolvidos pelo navegador)
-                            if (cs.color) c.style.color = cs.color;
-                            if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') {
-                                c.style.backgroundColor = cs.backgroundColor;
-                            } else {
-                                c.style.backgroundColor = '#ffffff';
-                            }
-
-                            // desativa imagens/gradientes problemáticos no clone e aplica fallback
-                            c.style.backgroundImage = 'none';
-                            c.style.boxShadow = 'none';
-
-                            // bordas e sombras
-                            if (cs.borderColor) c.style.borderColor = cs.borderColor;
-
-                            // remove filtros e propriedades que costumam quebrar o parser
-                            c.style.filter = 'none';
-                            c.style.backdropFilter = 'none';
-
-                            // --- sanitize inline style text that can contain modern color functions ---
-                            const inline = c.getAttribute && c.getAttribute('style');
-                            if (inline && /(?:color-mix|color\(|lab\(|lch\()/i.test(inline)) {
-                                try {
-                                    c.setAttribute('style', inline.replace(/(?:color-mix\([^\)]*\)|color\([^\)]*\)|lab\([^\)]*\)|lch\([^\)]*\))/gi, ''));
-                                } catch (e) { /* ignore per-element sanitize failures */ }
-                            }
-                        }
-
-                        // --- sanitize <style> tags inside the cloned document (remove unsupported functions and page-breaks) ---
-                        const styleTags = clonedDoc.querySelectorAll('style');
-                        styleTags.forEach(st => {
-                            try {
-                                // remove modern color functions and any page-break rules that can create blank pages
-                            st.textContent = st.textContent
-                                .replace(/(?:color-mix\([^\)]*\)|color\([^\)]*\)|lab\([^\)]*\)|lch\([^\)]*\))/gi, '')
-                                .replace(/page-break-(after|before):\s*always;?/gi, '')
-                                .replace(/break-(after|before):\s*page;?/gi, '')
-                                .replace(/@page[^{]*\{[^}]*\}/gi, '')              // remove regras @page
-                                .replace(/break-inside:\s*avoid;?/gi, '')         // remove avoid breaks
-                                .replace(/orphans:\s*\d+;?/gi, '')                // remove orphans
-                                .replace(/widows:\s*\d+;?/gi, '');                // remove widows
-                            } catch (e) { /* ignore */ }
-                        });
-
-                        // Remove external stylesheets from the clone head (to avoid complex rules)
-                        const head = clonedDoc.querySelector('head');
-                        if (head) {
-                            head.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-                                try {
-                                    const href = link.getAttribute('href') || '';
-                                    // preserve arquivos de fontes/external font providers (ex: googleapis, gstatic, woff, woff2, ttf)
-                                    if (/fonts\.googleapis|fonts\.gstatic|\.woff2?|\.ttf|\.otf/i.test(href)) {
-                                        // mantém link para carregar fontes (essencial para medidas corretas)
-                                        return;
-                                    }
-                                    // para outros estilos: em vez de remover, reduz seu impacto definindo media=print
-                                    // isso tende a manter fontes carregadas, mas reduz re-parsing de regras que podem quebrar html2canvas
-                                    try {
-                                        link.media = 'print';
-                                    } catch (e) {
-                                        // fallback: se não conseguimos ajustar media, removemos
-                                        link.remove();
-                                    }
-                                } catch (e) {
-                                    // se algo falhar aqui, não interrompe o processo
-                                    try { link.remove(); } catch (err) {}
-                                }
-                            });
-                        }
-                        // Remove the on-screen export controls (button) from the CLONE so they don't appear in the PDF
-                        const hideSelectors = ['#btn-download-pdf', '#download-pdf', '.result-export-controls', '#btnGenerateAndSend'];
-                        hideSelectors.forEach(sel => {
-                            try {
-                                clonedDoc.querySelectorAll(sel).forEach(n => n.remove());
-                            } catch (e) { /* ignore */ }
-                        });
-
-                        // Inject a small safety style into the clone to avoid forced page-breaks or extra margins
-                        try {
-                            const safetyStyle = clonedDoc.createElement('style');
-                            safetyStyle.textContent = `
-                                /* Small adjustments only for the CLONE used to render PDF */
-                                html, body { height: auto !important; overflow: visible !important; margin: 0; padding: 8px; }
-                                body { font-size: 13px !important; line-height: 1.2 !important; color: #000 !important; }
-                                /* Title styling fallback — se for h1/h2/p com esse texto, será maior via JS abaixo */
-                                h1, h2, .final-title, .diagnostico-title { text-align: center !important; font-size: 16px !important; font-weight: 600 !important; margin-bottom: 12px !important; }
-                                h1,h2,h3,h4 { page-break-after: avoid !important; break-after: avoid !important; }
-                                p, ul, ol { page-break-inside: avoid !important; break-inside: avoid !important; }
-                                img, img.logo, img.logo-topo, .logo { max-width: 160px !important; height: auto !important; display: block !important; }                                
-                                .logo-topo { margin: 0 0 12px 0 !important; }
-                                .result-export-controls, #btn-download-pdf, #download-pdf { display: none !important; }
-                                * { box-sizing: border-box !important; -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
-                            `;
-                            if (head) head.appendChild(safetyStyle);
-
-                            // --- Ajustes finais no clone: centralizar título detectando o texto e destacar rótulos ---
-                            try {
-                                // centraliza e aumenta o título que contém "Diagnóstico de estilo finalizado"
-                                const possibleTitle = Array.from(clonedDoc.querySelectorAll('h1,h2,h3,p,div')).find(n => /Diagn[áa]stico  de estilo finalizado/i.test(n.textContent));
-                                if (possibleTitle) {
-                                    possibleTitle.style.textAlign = 'center';
-                                    // possibleTitle.style.fontSize = '18px'; // <-- REMOVIDO: Font size será controlada via safetyStyle
-                                    possibleTitle.style.fontWeight = '600';
-                                    possibleTitle.style.marginBottom = '12px';
-                                }
-
-                                // realçar rótulos "Estilo Primário", "Estilo Secundário", "Estilo Terciário"
-                                ['Estilo Primário','Estilo Secundário','Estilo Terciário'].forEach(lbl => {
-                                    const node = Array.from(clonedDoc.querySelectorAll('*')).find(n => new RegExp('\\b' + lbl.replace(/ /g,'\\s+') + '\\b','i').test(n.textContent || ''));
-                                    if (node) {
-                                        node.style.fontSize = '14px';
-                                        node.style.fontWeight = '600';
-                                        node.style.marginTop = '10px';
-                                        node.style.marginBottom = '6px';
-                                    }
-                                });
-                            } catch (e) { /* não quebra se falhar */ }
-                        } catch (e) { /* ignore */ }
-
-                        // Ensure cloned html/body have no background gradients or large paddings that push an extra page
-                        const clonedHtml = clonedDoc.querySelector('html');
-                        const clonedBody = clonedDoc.querySelector('body');
-                        if (clonedHtml) {
-                            clonedHtml.style.backgroundImage = 'none';
-                            clonedHtml.style.backgroundColor = '#ffffff';
-                            clonedHtml.style.height = 'auto';
-                        }
-                        if (clonedBody) {
-                            clonedBody.style.backgroundImage = 'none';
-                            clonedBody.style.backgroundColor = '#ffffff';
-                            clonedBody.style.height = 'auto';
-                            clonedBody.style.paddingBottom = '0px';
-                            clonedBody.style.overflow = 'visible';
-                        }
-                        try {
-                            const last = clonedBody && clonedBody.lastElementChild;
-                            if (last && last.tagName === 'DIV' && last.textContent.trim().length === 0 && last.querySelectorAll('img').length === 0) {
-                                last.remove();
-                            }
-                        } catch (e) { /* ignore */ }
-
-                    } catch (e) {
-                        // não falha o processo se algo inesperado acontecer aqui
-                        console.warn('onclone sanitization error', e);
-                    }
-
-                    // --- INJETAR METADATA NO TOPO DO CLONE DO ELEMENTO ALVO (pos:absolute; top:8px) ---
-                    try {
-                        function _apEscapeHtml(str){
-                            return (str||'').toString().replace(/[&<>"']/g, function(m){
-                                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
-                            });
-                        }
-                        const _apName  = sessionStorage.getItem('ap_name') || '';
-                        const _apEmail = sessionStorage.getItem('ap_email') || '';
-
-                        if (_apName || _apEmail) {
-                            // localizar clone do elemento alvo
-                            let clonedTarget = null;
-                            try {
-                                if (element && element.id) clonedTarget = clonedDoc.getElementById(element.id);
-                            } catch(e){ clonedTarget = null; }
-
-                            if (!clonedTarget) {
-                                try { clonedTarget = clonedDoc.querySelector('#final-resultado') || clonedDoc.body; } catch(e){ clonedTarget = clonedDoc.body; }
-                            }
-
-                            const attachTo = clonedTarget || clonedDoc.body || clonedDoc.documentElement;
-
-                            // garantir posicionamento relativo para o absolute funcionar corretamente dentro do target
-                            try { attachTo.style.position = attachTo.style.position || 'relative'; } catch(e){}
-
-                            // inserir style mínimo no head do clone (opcional, reforça comportamento)
-                            try {
-                                const s = clonedDoc.createElement('style');
-                                s.type = 'text/css';
-                                s.appendChild(clonedDoc.createTextNode("\
-                                    /* AP metadata styling (absolute top, não altera fluxo) */\n\
-                                    #ap-pdf-metadata { position: absolute !important; left: 12px !important; right: 12px !important; top: 8px !important; font-size:11px !important; line-height:1.1 !important; color:#222 !important; text-align:left !important; z-index:99999 !important; background:transparent !important; padding:0 !important; margin:0 !important; }\n\
-                                "));
-                                if (clonedDoc.head) clonedDoc.head.appendChild(s); else attachTo.insertBefore(s, attachTo.firstChild);
-                            } catch(e){ /* ignore */ }
-
-                    // --- INJEÇÃO: ajuste específico para MOBILE (aplica-se ao documento CLONADO usado para html2canvas)
-                    try {
-                        const win = clonedDoc.defaultView || window;
-                        const isMobileClone = /Mobi|Android/i.test(win.navigator.userAgent || '') || (win.innerWidth && win.innerWidth < 700);
-                        if (isMobileClone && !clonedDoc.getElementById('ap-pdf-mobile-adjust')) {
-                            const mstyle = clonedDoc.createElement('style');
-                            mstyle.id = 'ap-pdf-mobile-adjust';
-                            mstyle.appendChild(clonedDoc.createTextNode(`
-                                /* Força redução de fontes apenas no clone para evitar quebras no PDF gerado a partir de MOBILE */
-                                html, body { font-size: 11px !important; line-height: 1.08 !important; }
-                                /* Reduz títulos grandes e display styles */
-                                h1, h2, .final-title, .display-4, .big-title { font-size: 20px !important; line-height:1.06 !important; }
-                                h3, h4, .sub-title { font-size: 14px !important; }
-                                /* Ajustes finos de espaçamento e margens */
-                                .section, .page-content-wrapper { margin-bottom: 6px !important; padding-bottom: 0 !important; }
-                                /* Evita overflow de texto */
-                                * { word-break: break-word !important; white-space: normal !important; overflow-wrap: break-word !important; }
-                            `));
-                            if (clonedDoc.head) clonedDoc.head.appendChild(mstyle);
-                        }
-                    } catch(e) { console.warn('ap-pdf-mobile-adjust failed', e); }
-
-
-                            const meta = clonedDoc.createElement('div');
-                            meta.id = 'ap-pdf-metadata';
-                            meta.setAttribute('aria-hidden','true');
-                            meta.setAttribute('style', [
-                                'position:absolute',
-                                'left:10px',
-                                'right:10px',
-                                'top:8px',
-                                'font-size:11px',
-                                'line-height:1.1',
-                                'color:#222',
-                                'text-align:left',
-                                'z-index:99999',
-                                'background:transparent',
-                                'padding:0',
-                                'margin:0'
-                            ].join(';'));
-
-                            const today = new Date();
-                            const dateStr = today.toLocaleDateString();
-
-                            meta.innerHTML = '<strong style="font-weight:600;margin-right:6px;">Nome:</strong>' + _apEscapeHtml(_apName) +
-                                            ' &nbsp;&nbsp; <strong style="font-weight:600;margin-right:6px;">E-mail:</strong>' + _apEscapeHtml(_apEmail) +
-                                            ' &nbsp;&nbsp; <strong style="font-weight:600;margin-right:6px;">Data:</strong>' + _apEscapeHtml(dateStr);
-
-                            // inserir como FIRST CHILD do attachTo para garantir que esteja no topo do conteúdo renderizado
-                            try { attachTo.insertBefore(meta, attachTo.firstChild); } catch(e){ try { clonedDoc.body.insertBefore(meta, clonedDoc.body.firstChild); } catch(ee){ console.warn('ap: append meta falhou', ee);} }
-
-                            // DEBUG TEMP: expor HTML do clone target (pode remover depois)
-                            try { window.__AP_LAST_CLONED_TARGET_HTML = (attachTo && attachTo.outerHTML) || null; } catch(e){}
-                        }
-                    } catch(e) {
-                        console.warn('ap: falha ao inserir metadata top no clone (ignorado):', e);
-                    }
+                // 1) injeta estilo global para evitar quebras e forçar tamanho base
+                if (!clonedDoc.getElementById('ap-pdf-global-adjust')) {
+                    const style = clonedDoc.createElement('style');
+                    style.id = 'ap-pdf-global-adjust';
+                    style.appendChild(clonedDoc.createTextNode(`
+                    html, body { font-size: 12px !important; line-height:1.08 !important; }
+                    * { word-break: break-word !important; white-space: normal !important; overflow-wrap: break-word !important; }
+                    img{ max-width:100% !important; height:auto !important; }
+                    `));
+                    clonedDoc.head && clonedDoc.head.appendChild(style);
                 }
+
+                // 2) Se for MOBILE -> percorre todos os elementos do CLONE e reduz explicitamente fonts grandes
+                if (__isMobile) {
+                    const MIN_FONT_PX = 10;          // não reduzir abaixo disto
+                    const SCALE_SMALL = 0.55;       // fator agressivo para elementos muito grandes
+                    const SCALE_MED = 0.75;         // fator moderado para tamanhos médios
+                    const THRESHOLD_MED = 16;       // px
+                    const THRESHOLD_HIGH = 24;      // px
+
+                    const all = Array.from(clonedDoc.querySelectorAll('*'));
+                    let checked = 0, adjusted = 0;
+
+                    all.forEach(el => {
+                    try {
+                        const cs = win.getComputedStyle(el);
+                        if (!cs) return;
+                        let fs = cs.fontSize; // já em px na maioria dos browsers
+                        if (!fs) return;
+                        // só px: se for "xxpx"
+                        const m = fs.match(/^([\d.]+)px$/);
+                        if (!m) return;
+                        checked++;
+                        const val = parseFloat(m[1]);
+                        let newVal = null;
+                        if (val >= THRESHOLD_HIGH) {
+                        newVal = Math.max(MIN_FONT_PX, Math.round(val * SCALE_SMALL));
+                        } else if (val >= THRESHOLD_MED) {
+                        newVal = Math.max(MIN_FONT_PX, Math.round(val * SCALE_MED));
+                        }
+                        if (newVal !== null) {
+                        // aplica diretamente no style inline do elemento do CLONE (garante override)
+                        el.style.setProperty('font-size', newVal + 'px', 'important');
+                        // também força line-height razoável
+                        el.style.setProperty('line-height', '1.06', 'important');
+                        adjusted++;
+                        }
+                        // adicional: se elemento tiver font-weight super grande e for título, mantém bold mas reduz tamanho
+                    } catch(eEl) {
+                        // não interrompe o loop
+                    }
+                    });
+
+                    console.info('AP_PDF: clone font adjust done', { checked, adjusted });
+                } else {
+                    console.info('AP_PDF: not mobile — skipping aggressive clone font adjust');
+                }
+
+                // 3) Marca no head para debug (pode ser removido depois)
+                if (!clonedDoc.getElementById('ap-pdf-clone-marker')) {
+                    const marker = clonedDoc.createElement('meta');
+                    marker.id = 'ap-pdf-clone-marker';
+                    marker.name = 'ap-pdf-clone-marker';
+                    marker.content = 'ap-pdf-clone-adjusted';
+                    clonedDoc.head && clonedDoc.head.appendChild(marker);
+                }
+
+                } catch (errOnclone) {
+                console.warn('AP_PDF: onclone ERROR', errOnclone);
+                }
+            } // fim onclone
             },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
+
+        // chamada final (ajusta se o teu código usa html2pdf().from(...).set(opt).save() de forma diferente)
+        try {
+            // limpa qualquer marker antigo no DOM original para evitar confusão em múltiplas gerações
+            const prev = document.getElementById('ap-pdf-generating');
+            if (prev) prev.remove();
+
+            // gera PDF — se o teu código usa outra API, substitui esta linha pela tua chamada
+            window.html2pdf().set(opt).from(srcEl).save().then(() => {
+            console.info('AP_PDF: html2pdf promise resolved');
+            }).catch(e => {
+            console.warn('AP_PDF: html2pdf promise rejected', e);
+            });
+        } catch (eCall) {
+            console.error('AP_PDF: html2pdf call failed', eCall);
+        }
+
+        })();
+        // ---- FIM bloco substituição ----
+
 
         // --- AP: helpers para inserir/retirar metadata no elemento original DURANTE a geração ---
         function _apEscapeHtml(str){
