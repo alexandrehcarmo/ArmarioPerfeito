@@ -877,15 +877,29 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         // liga o botão à coleta de nome/email + envio
         const pdfBtn = document.getElementById('btn-download-pdf');
         if (pdfBtn) {
-       // remove listeners antigos (caso já tenham sido ligados em execuções anteriores)
+            // remove listeners antigos (caso já tenham sido ligados em execuções anteriores)
             const clone = pdfBtn.cloneNode(true);
-            pdfBtn.parentNode.replaceChild(clone, pdfBtn);
-            clone.addEventListener('click', async function (ev) { // Adicionado 'async' aqui
+            pdfBtn.parentNode.replaceChild(clone, pdfBtn); // Substitui o botão antigo pelo clone para remover listeners
+            const currentPdfBtn = document.getElementById('btn-download-pdf'); // Pega a referência do novo botão clonado
+
+            currentPdfBtn.addEventListener('click', async function (ev) { // Usar currentPdfBtn aqui
                 ev.preventDefault();
                 ev.stopPropagation();
-                // Chama diretamente a função de geração de PDF e envio de dados.
-                // Nome e e-mail já foram coletados na primeira página e estão no sessionStorage.
-                await generatePdfAndSaveData(); // Chama diretamente
+
+                const originalBtnText = currentPdfBtn.textContent; // Salva o texto original do botão
+                currentPdfBtn.textContent = 'Gerando PDF...';      // Altera o texto para "Gerando PDF..."
+                currentPdfBtn.disabled = true;                     // Desabilita o botão para evitar múltiplos cliques
+                currentPdfBtn.classList.add('loading-state');      // Adiciona uma classe para eventual estilo de carregamento
+
+                try {
+                    // Chama a função de geração de PDF e envio de dados.
+                    await generatePdfAndSaveData();
+                } finally {
+                    // Garante que o botão volte ao normal, mesmo se houver erro na geração do PDF
+                    currentPdfBtn.textContent = originalBtnText;       // Restaura o texto original
+                    currentPdfBtn.disabled = false;                    // Reabilita o botão
+                    currentPdfBtn.classList.remove('loading-state');   // Remove a classe de carregamento
+                }
             });
         }
     }
@@ -1413,121 +1427,121 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
 
         // ---- INÍCIO: substitui aqui toda a definição de opt / html2canvas.onclone / chamada html2pdf ----
         (function generatePdfWithMobileFix(element) {
-        // elemento de origem (ajusta se o teu código usa outro nome)
-        const srcEl = element || document.querySelector('.page-content-wrapper') || document.body;
+            // elemento de origem (ajusta se o teu código usa outro nome)
+            const srcEl = element || document.querySelector('.page-content-wrapper') || document.body;
 
-        // Detecta mobile / DPR / escala segura
-        const __isMobile = /Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth || 0) < 700;
-        const __dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
-        const __defaultScale = 3;
-        const __scale = __isMobile ? Math.max(1, Math.round((__defaultScale * 10 / __dpr)) / 10) : __defaultScale;
+            // Detecta mobile / DPR / escala segura
+            const __isMobile = /Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth || 0) < 700;
+            const __dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+            const __defaultScale = 3;
+            const __scale = __isMobile ? Math.max(1, Math.round((__defaultScale * 10 / __dpr)) / 10) : __defaultScale;
 
-        // Opções para html2pdf/html2canvas/jsPDF
-        const opt = {
-            margin:       0.5, 
-            filename:     'document.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  {
-            scale: __scale,
-            useCORS: true,
-            allowTaint: false,
-            // onclone: override robusto que força redução de fontes no CLONE (após qualquer cópia de estilos)
-            onclone: function (clonedDoc, originalElement) {
-                try {
-                console.info('AP_PDF: onclone START', { isMobile: __isMobile, scale: __scale });
-
-                const win = clonedDoc.defaultView || window;
-
-                // 1) injeta estilo global para evitar quebras e forçar tamanho base
-                if (!clonedDoc.getElementById('ap-pdf-global-adjust')) {
-                    const style = clonedDoc.createElement('style');
-                    style.id = 'ap-pdf-global-adjust';
-                    style.appendChild(clonedDoc.createTextNode(`
-                    html, body { font-size: 12px !important; line-height:1.08 !important; }
-                    * { word-break: break-word !important; white-space: normal !important; overflow-wrap: break-word !important; }
-                    img{ max-width:100% !important; height:auto !important; }
-                    `));
-                    clonedDoc.head && clonedDoc.head.appendChild(style);
-                }
-
-                // 2) Se for MOBILE -> percorre todos os elementos do CLONE e reduz explicitamente fonts grandes
-                if (__isMobile) {
-                    const MIN_FONT_PX = 10;          // não reduzir abaixo disto
-                    const SCALE_SMALL = 0.55;       // fator agressivo para elementos muito grandes
-                    const SCALE_MED = 0.75;         // fator moderado para tamanhos médios
-                    const THRESHOLD_MED = 16;       // px
-                    const THRESHOLD_HIGH = 24;      // px
-
-                    const all = Array.from(clonedDoc.querySelectorAll('*'));
-                    let checked = 0, adjusted = 0;
-
-                    all.forEach(el => {
+            // Opções para html2pdf/html2canvas/jsPDF
+            const opt = {
+                margin:       0.5, 
+                filename:     'document.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  {
+                scale: __scale,
+                useCORS: true,
+                allowTaint: false,
+                // onclone: override robusto que força redução de fontes no CLONE (após qualquer cópia de estilos)
+                onclone: function (clonedDoc, originalElement) {
                     try {
-                        const cs = win.getComputedStyle(el);
-                        if (!cs) return;
-                        let fs = cs.fontSize; // já em px na maioria dos browsers
-                        if (!fs) return;
-                        // só px: se for "xxpx"
-                        const m = fs.match(/^([\d.]+)px$/);
-                        if (!m) return;
-                        checked++;
-                        const val = parseFloat(m[1]);
-                        let newVal = null;
-                        if (val >= THRESHOLD_HIGH) {
-                        newVal = Math.max(MIN_FONT_PX, Math.round(val * SCALE_SMALL));
-                        } else if (val >= THRESHOLD_MED) {
-                        newVal = Math.max(MIN_FONT_PX, Math.round(val * SCALE_MED));
-                        }
-                        if (newVal !== null) {
-                        // aplica diretamente no style inline do elemento do CLONE (garante override)
-                        el.style.setProperty('font-size', newVal + 'px', 'important');
-                        // também força line-height razoável
-                        el.style.setProperty('line-height', '1.06', 'important');
-                        adjusted++;
-                        }
-                        // adicional: se elemento tiver font-weight super grande e for título, mantém bold mas reduz tamanho
-                    } catch(eEl) {
-                        // não interrompe o loop
+                    console.info('AP_PDF: onclone START', { isMobile: __isMobile, scale: __scale });
+
+                    const win = clonedDoc.defaultView || window;
+
+                    // 1) injeta estilo global para evitar quebras e forçar tamanho base
+                    if (!clonedDoc.getElementById('ap-pdf-global-adjust')) {
+                        const style = clonedDoc.createElement('style');
+                        style.id = 'ap-pdf-global-adjust';
+                        style.appendChild(clonedDoc.createTextNode(`
+                        html, body { font-size: 12px !important; line-height:1.08 !important; }
+                        * { word-break: break-word !important; white-space: normal !important; overflow-wrap: break-word !important; }
+                        img{ max-width:100% !important; height:auto !important; }
+                        `));
+                        clonedDoc.head && clonedDoc.head.appendChild(style);
                     }
-                    });
 
-                    console.info('AP_PDF: clone font adjust done', { checked, adjusted });
-                } else {
-                    console.info('AP_PDF: not mobile — skipping aggressive clone font adjust');
-                }
+                    // 2) Se for MOBILE -> percorre todos os elementos do CLONE e reduz explicitamente fonts grandes
+                    if (__isMobile) {
+                        const MIN_FONT_PX = 10;          // não reduzir abaixo disto
+                        const SCALE_SMALL = 0.55;       // fator agressivo para elementos muito grandes
+                        const SCALE_MED = 0.75;         // fator moderado para tamanhos médios
+                        const THRESHOLD_MED = 16;       // px
+                        const THRESHOLD_HIGH = 24;      // px
 
-                // 3) Marca no head para debug (pode ser removido depois)
-                if (!clonedDoc.getElementById('ap-pdf-clone-marker')) {
-                    const marker = clonedDoc.createElement('meta');
-                    marker.id = 'ap-pdf-clone-marker';
-                    marker.name = 'ap-pdf-clone-marker';
-                    marker.content = 'ap-pdf-clone-adjusted';
-                    clonedDoc.head && clonedDoc.head.appendChild(marker);
-                }
+                        const all = Array.from(clonedDoc.querySelectorAll('*'));
+                        let checked = 0, adjusted = 0;
 
-                } catch (errOnclone) {
-                console.warn('AP_PDF: onclone ERROR', errOnclone);
-                }
-            } // fim onclone
-            },
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
+                        all.forEach(el => {
+                        try {
+                            const cs = win.getComputedStyle(el);
+                            if (!cs) return;
+                            let fs = cs.fontSize; // já em px na maioria dos browsers
+                            if (!fs) return;
+                            // só px: se for "xxpx"
+                            const m = fs.match(/^([\d.]+)px$/);
+                            if (!m) return;
+                            checked++;
+                            const val = parseFloat(m[1]);
+                            let newVal = null;
+                            if (val >= THRESHOLD_HIGH) {
+                            newVal = Math.max(MIN_FONT_PX, Math.round(val * SCALE_SMALL));
+                            } else if (val >= THRESHOLD_MED) {
+                            newVal = Math.max(MIN_FONT_PX, Math.round(val * SCALE_MED));
+                            }
+                            if (newVal !== null) {
+                            // aplica diretamente no style inline do elemento do CLONE (garante override)
+                            el.style.setProperty('font-size', newVal + 'px', 'important');
+                            // também força line-height razoável
+                            el.style.setProperty('line-height', '1.06', 'important');
+                            adjusted++;
+                            }
+                            // adicional: se elemento tiver font-weight super grande e for título, mantém bold mas reduz tamanho
+                        } catch(eEl) {
+                            // não interrompe o loop
+                        }
+                        });
 
-        // chamada final (ajusta se o teu código usa html2pdf().from(...).set(opt).save() de forma diferente)
-        try {
-            // limpa qualquer marker antigo no DOM original para evitar confusão em múltiplas gerações
-            const prev = document.getElementById('ap-pdf-generating');
-            if (prev) prev.remove();
+                        console.info('AP_PDF: clone font adjust done', { checked, adjusted });
+                    } else {
+                        console.info('AP_PDF: not mobile — skipping aggressive clone font adjust');
+                    }
 
-            // gera PDF — se o teu código usa outra API, substitui esta linha pela tua chamada
-            window.html2pdf().set(opt).from(srcEl).save().then(() => {
-            console.info('AP_PDF: html2pdf promise resolved');
-            }).catch(e => {
-            console.warn('AP_PDF: html2pdf promise rejected', e);
-            });
-        } catch (eCall) {
-            console.error('AP_PDF: html2pdf call failed', eCall);
-        }
+                    // 3) Marca no head para debug (pode ser removido depois)
+                    if (!clonedDoc.getElementById('ap-pdf-clone-marker')) {
+                        const marker = clonedDoc.createElement('meta');
+                        marker.id = 'ap-pdf-clone-marker';
+                        marker.name = 'ap-pdf-clone-marker';
+                        marker.content = 'ap-pdf-clone-adjusted';
+                        clonedDoc.head && clonedDoc.head.appendChild(marker);
+                    }
+
+                    } catch (errOnclone) {
+                    console.warn('AP_PDF: onclone ERROR', errOnclone);
+                    }
+                } // fim onclone
+                },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // chamada final (ajusta se o teu código usa html2pdf().from(...).set(opt).save() de forma diferente)
+            try {
+                // limpa qualquer marker antigo no DOM original para evitar confusão em múltiplas gerações
+                const prev = document.getElementById('ap-pdf-generating');
+                if (prev) prev.remove();
+
+                // gera PDF — se o teu código usa outra API, substitui esta linha pela tua chamada
+                window.html2pdf().set(opt).from(srcEl).save().then(() => {
+                console.info('AP_PDF: html2pdf promise resolved');
+                }).catch(e => {
+                console.warn('AP_PDF: html2pdf promise rejected', e);
+                });
+            } catch (eCall) {
+                console.error('AP_PDF: html2pdf call failed', eCall);
+            }
 
         })();
         // ---- FIM bloco substituição ----
