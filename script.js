@@ -452,6 +452,9 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
             // Se a validação for bem-sucedida, salva no sessionStorage
             sessionStorage.setItem('ap_name', nameValue);
             sessionStorage.setItem('ap_email', emailValue);
+            console.log('Dados salvos no sessionStorage:');
+            console.log('Nome:', sessionStorage.getItem('ap_name'));
+            console.log('Email:', sessionStorage.getItem('ap_email'));
             feedbackDiv.textContent = ''; // Limpa qualquer feedback anterior
         }
 
@@ -1268,6 +1271,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         const gasUrl = gasWebAppLink + '?' + gasParams;
 
         console.log("Dados para enviar para a planilha via GET:", { nome, email, primario: estiloPrimario, secundario: estiloSecundario, terciario: estiloTerciario, data: dataFormatadaParaSheet });
+        console.log("URL final para a planilha (GET):", gasUrl);
 
         try {
             const img = new Image();
