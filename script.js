@@ -1,3 +1,4 @@
+// ALTERADO EM 30/09/25 para solicitar NOME e EMAIL na primeira tela com INPUT e não mais POP UP
 // --- VARIÁVEIS GLOBAIS E DE LÓGICA ---
 let pontuacaoEstilos = {};
 let respostasPorPergunta = {};
@@ -367,6 +368,19 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
                 </ol>
                 <p>Propositalmente, as perguntas se repetirão a cada etapa.</p>
                 <p>Vamos começar? Separe <strong>30 minutos</strong> para responder!</p>
+
+                 <hr class="my-4"> <!-- Adicionado um separador -->
+
+                <h4 class="text-center mb-3">Antes de começar, por favor, informe seus dados:</h4>
+                <div class="mb-3">
+                    <label for="userName" class="form-label">Seu Nome Completo:</label>
+                    <input type="text" id="userName" class="form-control form-control-lg" placeholder="Ex: Maria da Silva" required>
+                </div>
+                <div class="mb-4">
+                    <label for="userEmail" class="form-label">Seu Melhor E-mail:</label>
+                    <input type="email" id="userEmail" class="form-control form-control-lg" placeholder="Ex: seuemail@dominio.com" required>
+                </div>
+                <div id="introValidationFeedback" class="text-danger small mb-3 text-center"></div>
             ` 
         }
     ];
@@ -403,6 +417,45 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
     }
 
     function nextIntroPage() {
+        // Apenas realiza a validação se estiver na primeira página de introdução, onde os inputs são esperados
+        if (currentIntroPageIndex === 0) {
+            const userNameInput = document.getElementById('userName');
+            const userEmailInput = document.getElementById('userEmail');
+            const feedbackDiv = document.getElementById('introValidationFeedback');
+
+            // Adicionada verificação de existência dos elementos para evitar erros
+            if (!userNameInput || !userEmailInput || !feedbackDiv) {
+                console.error("Inputs de nome/email ou div de feedback não encontrados na página de introdução. Verifique o HTML gerado.");
+                // Caso não encontre os inputs (cenário inesperado), avança para não bloquear o fluxo completamente.
+                document.getElementById('intro-section').classList.add('fade-out-section');
+                setTimeout(() => {
+                    document.getElementById('intro-section').style.display = 'none';
+                    startQuiz();
+                }, 500);
+                return;
+            }
+
+            const nameValue = userNameInput.value.trim();
+            const emailValue = userEmailInput.value.trim();
+
+            if (!nameValue) {
+                feedbackDiv.textContent = 'Por favor, digite seu nome completo.';
+                userNameInput.focus();
+                return; // Impede a continuação
+            }
+            if (!emailValue || !/\S+@\S+\.\S+/.test(emailValue)) { // Validação básica de e-mail
+                feedbackDiv.textContent = 'Por favor, digite um e-mail válido.';
+                userEmailInput.focus();
+                return; // Impede a continuação
+            }
+
+            // Se a validação for bem-sucedida, salva no sessionStorage
+            sessionStorage.setItem('ap_name', nameValue);
+            sessionStorage.setItem('ap_email', emailValue);
+            feedbackDiv.textContent = ''; // Limpa qualquer feedback anterior
+        }
+
+        // Continua com a lógica original para esconder a seção introdutória e iniciar o quiz
         document.getElementById('intro-section').classList.add('fade-out-section');
         setTimeout(() => {
             document.getElementById('intro-section').style.display = 'none';
@@ -821,13 +874,15 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         // liga o botão à coleta de nome/email + envio
         const pdfBtn = document.getElementById('btn-download-pdf');
         if (pdfBtn) {
-            // remove listeners antigos (caso já tenham sido ligados em execuções anteriores)
+       // remove listeners antigos (caso já tenham sido ligados em execuções anteriores)
             const clone = pdfBtn.cloneNode(true);
             pdfBtn.parentNode.replaceChild(clone, pdfBtn);
-            clone.addEventListener('click', function (ev) {
+            clone.addEventListener('click', async function (ev) { // Adicionado 'async' aqui
                 ev.preventDefault();
-                ev.stopPropagation();   // evita que o listener global em document capture este clique - ADICIONADO 18/09
-                openSendModalPrefill(); // abre modal para coletar nome/email antes de gerar o PDF
+                ev.stopPropagation();
+                // Chama diretamente a função de geração de PDF e envio de dados.
+                // Nome e e-mail já foram coletados na primeira página e estão no sessionStorage.
+                await generatePdfAndSaveData(); // Chama diretamente
             });
         }
     }
@@ -1131,157 +1186,6 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         lastScrollY = currentScrollY;
     });
 
-
-        /* ---------- NEW: send modal + client PDF generation + upload ---------- */
-
-    const sendModalEl = document.getElementById('send-result-modal');
-    const sendModal = sendModalEl ? new bootstrap.Modal(sendModalEl) : null;
-
-    function openSendModalPrefill() {
-        const nameInput = document.getElementById('sendName');
-        const emailInput = document.getElementById('sendEmail');
-        // preenche se já existir em sessionStorage
-        if (sessionStorage.getItem('ap_name')) nameInput.value = sessionStorage.getItem('ap_name');
-        if (sessionStorage.getItem('ap_email')) emailInput.value = sessionStorage.getItem('ap_email');
-        sendModal.show();
-    }
-
-// --- ANEXAR HANDLER MINIMAL E SEGURO para #btnGenerateAndSend ---
-(function () {
-    const btn = document.getElementById('btnGenerateAndSend');
-    const sendModalEl = document.getElementById('send-result-modal');
-    if (!btn || !sendModalEl) return; // evita erro se HTML diferente
-
-    // evita múltiplas ligações se o script for executado outra vez
-    if (btn.dataset.listenerAttached === '1') return;
-    btn.dataset.listenerAttached = '1';
-
-    btn.addEventListener('click', async function (ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-
-        const nameInput = document.getElementById('sendName');
-        const emailInput = document.getElementById('sendEmail');
-        const feedback = document.getElementById('sendFeedback');
-
-        const name = (nameInput && nameInput.value || '').trim();
-        const email = (emailInput && emailInput.value || '').trim();
-
-        if (!name || !email) {
-            if (feedback) feedback.textContent = 'Por favor preencha nome e e-mail.';
-            return;
-        }
-        if (feedback) feedback.textContent = 'Gerando PDF...';
-
-        try {
-            sessionStorage.setItem('ap_name', name);
-            sessionStorage.setItem('ap_email', email);
-        } catch (e) { /* ignore */ }
-
-        // fecha o modal (tenta instâncias possíveis)
-        try {
-            if (window.sendModal && typeof window.sendModal.hide === 'function') {
-                window.sendModal.hide();
-            } else if (typeof sendModal !== 'undefined' && sendModal && typeof sendModal.hide === 'function') {
-                sendModal.hide();
-            } else {
-                const bs = bootstrap && bootstrap.Modal ? bootstrap.Modal.getInstance(sendModalEl) : null;
-                if (bs && typeof bs.hide === 'function') bs.hide();
-            }
-        } catch (e) { /* ignore */ }
-
-
-        // --- substituir o setTimeout(...) por isso ---
-        try {
-        // garante que nada esteja focado (evita aria-hidden em elemento com foco)
-        try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch(e){}
-
-        // se temos instancia do modal do bootstrap, aguarda evento 'hidden.bs.modal'
-        await new Promise(resolve => {
-            const bsInstance = (window.bootstrap && bootstrap.Modal) ? bootstrap.Modal.getInstance(sendModalEl) : null;
-            if (bsInstance && sendModalEl) {
-            // se já está escondido, resolve imediatamente
-            if (sendModalEl.classList.contains('show') === false) return resolve();
-            sendModalEl.addEventListener('hidden.bs.modal', () => resolve(), { once: true });
-            try { bsInstance.hide(); } catch(e){ /* ignore */ }
-            // timeout de segurança caso o evento não dispare (fallback)
-            setTimeout(resolve, 800);
-            } else {
-            // fallback genérico: espera uma animação curta
-            setTimeout(resolve, 450);
-            }
-        });
-
-        // aguarda fontes web carregarem (evita texto sem formatação)
-        if (document.fonts && document.fonts.ready) {
-            try { await document.fonts.ready; } catch(e){ /* ignore */ }
-        }
-
-        // aguarda logo e imagens essenciais (função existe no arquivo)
-        try { await waitForLogo(3000); } catch(e){ /* ignore */ }
-
-        // agora chama a rotina de geração com maior chance de estilos aplicados
-        if (typeof generatePdfAndSaveData === 'function') {
-            await generatePdfAndSaveData();
-        } else {
-            // fallback existente...
-        }
-        } catch (err) {
-        console.error('Erro ao gerar/enviar PDF:', err);
-        if (feedback) feedback.textContent = 'Erro ao gerar PDF. Veja console.';
-        }
-
-
-    }, { passive: false });
-})();
-
-// --- ANEXAR HANDLER MINIMAL E SEGURO para #btnGenerateAndSend ---
-(function () {
-    const btn = document.getElementById('btnGenerateAndSend');
-    const sendModalEl = document.getElementById('send-result-modal');
-    if (!btn || !sendModalEl) return; // evita erro se HTML diferente
-
-    // evita múltiplas ligações se o script for executado outra vez
-    if (btn.dataset.listenerAttached === '1') return;
-    btn.dataset.listenerAttached = '1';
-
-    btn.addEventListener('click', async function (ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-
-        const nameInput = document.getElementById('sendName');
-        const emailInput = document.getElementById('sendEmail');
-        const feedback = document.getElementById('sendFeedback');
-
-        const name = (nameInput && nameInput.value || '').trim();
-        const email = (emailInput && emailInput.value || '').trim();
-
-        if (!name || !email) {
-            if (feedback) feedback.textContent = 'Por favor preencha nome e e-mail.';
-            return;
-        }
-        if (feedback) feedback.textContent = 'Gerando PDF...';
-
-        try {
-            sessionStorage.setItem('ap_name', name);
-            sessionStorage.setItem('ap_email', email);
-        } catch (e) { /* ignore */ }
-
-        // fecha o modal (tenta instâncias possíveis)
-        try {
-            if (window.sendModal && typeof window.sendModal.hide === 'function') {
-                window.sendModal.hide();
-            } else if (typeof sendModal !== 'undefined' && sendModal && typeof sendModal.hide === 'function') {
-                sendModal.hide();
-            } else {
-                const bs = bootstrap && bootstrap.Modal ? bootstrap.Modal.getInstance(sendModalEl) : null;
-                if (bs && typeof bs.hide === 'function') bs.hide();
-            }
-        } catch (e) { /* ignore */ }
-    }, { passive: false });
-})();
-
-
     // Aguarda a logo estar carregada (evita PDF sem a imagem)
     const waitForLogo = (timeout = 3000) => {
         const imgs = Array.from(document.querySelectorAll('img.logo-topo'));
@@ -1333,10 +1237,9 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             return; // Ou trate o erro de outra forma
         }
 
-        // Adicione AQUI o delay para garantir renderização
         await new Promise(resolve => setTimeout(resolve, 2000)); // Pequeno delay para garantir renderização
 
-        // Coleta os dados do usuário e resultados do teste
+        // Coleta os dados do usuário e resultados do teste (agora virão do sessionStorage)
         const nome = sessionStorage.getItem('ap_name') || 'Nome não informado';
         const email = sessionStorage.getItem('ap_email') || 'email@exemplo.com';
 
@@ -1350,7 +1253,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         const dateDDMMAA = getFormattedDateDDMMAA(currentDateTime); 
 
         // 1. Envia os dados para a planilha via Google Apps Script (usando GET com Image())
-        // <<< COLOQUE A URL DO SEU APPS SCRIPT IMPLANTADO AQUI (COPIADA NO PASSO 1.3) >>>
+        // <<< URL DO APPS SCRIPT IMPLANTADO AQUI >>>
         const gasWebAppLink = 'https://script.google.com/macros/s/AKfycbxF3vXT7x00ANhEZlrgTnfRRsJhb5iPOwlOvzhwI_joUIy4HZ-qOy8fVwbJlCLcDNOvdA/exec'; 
         
         const gasParams = new URLSearchParams({
@@ -1372,11 +1275,11 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             img.onload = () => console.log('Envio para planilha (GET) concluído com sucesso.');
             img.onerror = (err) => {
                 console.error('Erro ao enviar para planilha (GET):', err);
-                alert('Falha ao enviar dados para a planilha. Por favor, verifique o console para mais detalhes ou tente novamente.');
+                // Substituído alert() por console.error() para operação silenciosa
             };
         } catch (error) {
             console.error('Erro ao iniciar envio para a planilha (Image GET):', error);
-            alert('Erro interno ao tentar enviar dados para a planilha.');
+            // Substituído alert() por console.error() para operação silenciosa
         }
 
         // 2. Geração do PDF usando jsPDF e html2canvas
@@ -1419,7 +1322,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                     void finalResultEl.offsetHeight;
                     // Delay curto para browser aplicar fontes/estilos (requestAnimationFrame > setTimeout para sync com render)
                     await new Promise(resolve => requestAnimationFrame(resolve));
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Ajuste para 800 se ainda falhar; >500 não resolveu sozinho, mas com reflow sim
+                    await new Promise(resolve => setTimeout(resolve, 2000)); 
 
                     resetVisibility = styleBefore;
                 }
@@ -1430,14 +1333,13 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             
             // Forçar reflow leve
             try { void finalResultEl.offsetHeight; } catch(e){}
-        
 
             // Aguarda webfonts carregarem (só adicionar 1 linha antes de html2canvas) 15:40
             if (document.fonts && document.fonts.ready) await Promise.race([document.fonts.ready, new Promise(r=>setTimeout(r,8000))]);
 
             // Checagem extra: se fonts não loaded após wait, loga warn mas prossegue
             if (document.fonts && document.fonts.status !== 'loaded') {
-                console.warn('Fonts não fully loaded após wait; prosseguindo com possíveis defaults.');
+                console.warn('Fontes não carregadas completamente após wait; prosseguindo com possíveis defaults.');
             }
 
             // Se o conteúdo da logo e metadata ocuparem mais da metade da página, talvez seja melhor
@@ -1481,9 +1383,9 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         }
 
         // 3. Salva o PDF no navegador do usuário
-        doc.save(`Diagnostico_Estilo_${dateDDMMAA}.pdf`); // <-- Linha alterada
+        doc.save(`Diagnostico_Estilo_${dateDDMMAA}.pdf`); 
 
-        alert("PDF gerado e dados enviados para a planilha com sucesso!");
+        console.log("PDF gerado e dados enviados para a planilha com sucesso!"); // Substituído alert() por console.log() para operação silenciosa
     }
 
     // Gera PDF do container #final-resultado em blob usando html2pdf (robusto)

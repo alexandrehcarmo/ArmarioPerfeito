@@ -73,6 +73,7 @@
 
         <script>
             // Define a altura da viewport real para lidar com barras de navegação móveis
+            // ALTERADO EM 30/09/25 para solicitar NOME e EMAIL na primeira tela com INPUT e não mais POP UP
             function setVhProperty() {
                 let vh = window.innerHeight * 0.01;
                 document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -92,38 +93,6 @@
                     header.classList.add("hidden"); // Esconde a logo para sempre
                 }
             });
-
         </script>
-
-        <!-- SEND RESULT MODAL (fora de qualquer outro .modal) -->
-        <div class="modal fade" id="send-result-modal" tabindex="-1" aria-hidden="true"
-            data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Informe seus dados</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <div class="modal-body">
-                <form id="sendResultForm">
-                <div class="mb-3">
-                    <label for="sendName" class="form-label">Nome</label>
-                    <input id="sendName" name="name" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label for="sendEmail" class="form-label">E-mail</label>
-                    <input id="sendEmail" name="email" type="email" class="form-control" required>
-                </div>
-                <div id="sendFeedback" class="small text-muted"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button id="btnGenerateAndSend" class="btn btn-primary">Gerar PDF</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            </div>
-            </div>
-        </div>
-        </div>
-
     </body>
 </html>
