@@ -1,4 +1,7 @@
-// ALTERADO EM 30/09/25 para solicitar NOME e EMAIL na primeira tela com INPUT e não mais POP UP
+// Código desenvolvido por Alexandre Hage Carmo (com uso de auxílios de diversas IAs) - Jun-set.2025
+// Destinado ao TESTE de ESTILO do Aplicativo Armário Perfeito - Contratado por Leonardo Goulart
+
+// Solicitação de NOME e EMAIL na primeira tela com INPUT e não mais POP UP
 // --- VARIÁVEIS GLOBAIS E DE LÓGICA ---
 let pontuacaoEstilos = {};
 let respostasPorPergunta = {};
@@ -476,7 +479,7 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
 
 
         loadAllQuestions();
-        // todasAsPerguntas = shuffle([...todasAsPerguntas]); // embaralha mantendo os numeros originais
+        // embaralha mantendo os numeros originais
 
         // separa textuais e imagéticas
         const textQuestions  = todasAsPerguntas.filter(q => q.tipo === 'text');
@@ -517,23 +520,6 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         // Calcula número para exibição na ordem aleatória
         const numeroExibicao = perguntaAtualIndice + 1;
 
-        // Monta o HTML completo da pergunta
-        /* perguntaDiv.innerHTML = `
-            <p class="lead text-center">
-                <strong>Pergunta ${numeroExibicao} de ${totalPerguntas} (Fase ${faseAtual})</strong>
-            </p>
-        <p class="text-center h5">${pergunta.texto}</p>
-        <div class="row justify-content-center mt-3" id="opcoes-pergunta-${pergunta.numero}"></div>
-        <div class="navigation-buttons">
-            <button id="btn-proxima"
-                class="btn btn-primary btn-lg"
-                onclick="avancarParaProximaPergunta()"
-                disabled>
-              Próxima Pergunta
-           </button>
-        </div>
-        `; */
-
         perguntaDiv.innerHTML = `
             <p class="lead text-center">
                 <strong>Pergunta ${numeroExibicao} de ${totalPerguntas} (Fase ${faseAtual})</strong>
@@ -559,12 +545,10 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
 
         // Adiciona ao DOM
         quizSection.appendChild(perguntaDiv);
-        
-        /* ALTERADO 30/07 */ 
+    
         perguntaDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
         // Pega o container das opções e aplica classe de fase
-
         const opcoesContainer = document.getElementById(`opcoes-pergunta-${pergunta.numero}`);
         opcoesContainer.classList.add(`phase-${faseAtual}`);
         
@@ -689,10 +673,10 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
        finalDiv.classList.remove('show');
        finalDiv.innerHTML = '';
 
-        // 1) Clone a pontuação desta fase
+        // Clone a pontuação desta fase
         faseCounts[faseAtual] = { ...pontuacaoEstilos };
 
-        // 2) Determina o estilo vencedor desta fase
+        // Determina o estilo vencedor desta fase
         let estilosExcluidos = [];
         if (faseAtual === 2) {
             estilosExcluidos = [estilosPrimarioSecundario.primary];
@@ -704,7 +688,7 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         }
         const estiloVencedorDaFase = getEstiloVencedor(pontuacaoEstilos, estilosExcluidos);
 
-        // 3) Armazena o vencedor
+        // Armazena o vencedor
         if (faseAtual === 1) {
             estilosPrimarioSecundario.primary = estiloVencedorDaFase;
         } else if (faseAtual === 2) {
@@ -725,7 +709,7 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
             estiloVencedorDaFase
         );
 
-        // 4) Só mostra modal de transição nas fases 1 e 2
+        // Só mostra modal de transição nas fases 1 e 2
         const modalTitle = document.getElementById('modalLabel');
         const modalBody  = document.getElementById('modalBody');
         const modalBtn   = document.getElementById('modal-continue-btn');
@@ -752,7 +736,7 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
             phaseResultModal.show();
 
         } else {
-            // 5) Somente na Fase 3 exibimos o resultado final
+            // Somente na Fase 3 exibimos o resultado final
             console.log(">>> Chegou na Fase 3, exibindo resultado final");
             displayFinalResults();
         }
@@ -791,13 +775,11 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
     function displayFinalResults() {
         const finalDiv = document.getElementById('final-resultado');
 
-        // 1) sair imediatamente se não for a fase 3
+        // sair imediatamente se não for a fase 3
         if (faseAtual < 3) {
             finalDiv.style.display = 'none';
             return;
         }
-
-        // — só chegamos aqui na fase 3, monta o HTML final —
 
         window.scrollTo(0, 0);
         document.getElementById('intro-section').style.display = 'none';
@@ -921,7 +903,6 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
         if (vencedoresPotenciais.length === 1) return vencedoresPotenciais[0];
         if (vencedoresPotenciais.length > 1) return aplicarDesempate(vencedoresPotenciais, respostasPorPergunta, estilosExcluidos);
         // Fallback para caso não encontre nenhum vencedor potencial (todos excluídos ou 0 pontos)
-        /* Adicione a linha abaixo (será a linha 460)  console.log("getEstiloVencedor: Retornando estilos:", { primary, secondary, tertiary });*/
         return todosOsEstilos.find(s => !estilosExcluidos.includes(s)) || todosOsEstilos[0]; 
     }
 
@@ -1144,7 +1125,6 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
     // Inicia o quiz assim que a página carrega 
     window.addEventListener('load', initQuiz);
     
-
     // fallback: garante que o clique em #btn-download-pdf funcione mesmo se a tela final for exibida sem passar por displayFinalResults()
     document.addEventListener('click', function (ev) {
     const btn = ev.target.closest && ev.target.closest('#btn-download-pdf');
@@ -1173,8 +1153,6 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
     })();
     });
 
-
-
     // Expondo funções globais para funcionar com type="module"
     window.nextIntroPage = nextIntroPage;
     window.prevIntroPage = prevIntroPage;
@@ -1185,7 +1163,6 @@ const LOGO_Y_MM = 10; // Margem superior (em mm)
     window.renderQuestion = renderQuestion;
     window.voltarPergunta = voltarPergunta;
 
-    // INSERIDO EM 05/08
     // Cabeçalho some ao rolar para baixo e volta ao rolar para cima
     let lastScrollY = window.pageYOffset;
     window.addEventListener('scroll', () => {
@@ -1269,7 +1246,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         const dataFormatadaParaSheet = formatDateTimeForSheets(currentDateTime);
         const dateDDMMAA = getFormattedDateDDMMAA(currentDateTime); 
 
-        // 1. Envia os dados para a planilha via Google Apps Script (usando GET com Image())
+        // Envia os dados para a planilha via Google Apps Script (usando GET com Image())
         // <<< URL DO APPS SCRIPT IMPLANTADO AQUI >>>
         const gasWebAppLink = 'https://script.google.com/macros/s/AKfycbxF3vXT7x00ANhEZlrgTnfRRsJhb5iPOwlOvzhwI_joUIy4HZ-qOy8fVwbJlCLcDNOvdA/exec'; 
         
@@ -1300,18 +1277,18 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             // Substituído alert() por console.error() para operação silenciosa
         }
 
-        // 2. Geração do PDF usando jsPDF e html2canvas
+        // Geração do PDF usando jsPDF e html2canvas
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('p', 'mm', 'a4');
 
-        // A. Adiciona a Logo no topo com dimensões calculadas
+        // Adiciona a Logo no topo com dimensões calculadas
         if (LOGO_BASE64 && LOGO_BASE64.startsWith('data:image')) {
             doc.addImage(LOGO_BASE64, 'PNG', LOGO_X_MM, LOGO_Y_MM, LOGO_DESIRED_WIDTH_MM, LOGO_CALCULATED_HEIGHT_MM);
         } else {
             console.warn('LOGO_BASE64 não definida ou inválida. Logo não será adicionada ao PDF.');
         }
 
-        // B. Adiciona Nome, E-mail e Data abaixo da logo
+        // Adiciona Nome, E-mail e Data abaixo da logo
         const textStartY = LOGO_Y_MM + LOGO_CALCULATED_HEIGHT_MM + 4; // 4mm de margem abaixo da logo
         doc.setFontSize(8); // Fonte ainda menor para metadata
         doc.setFont('helvetica', 'normal');
@@ -1319,7 +1296,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         doc.text(`E-mail: ${email}`, 10, textStartY + 3.5); // 3.5mm abaixo do nome
         doc.text(`Data: ${dataFormatadaParaPDF}`, 10, textStartY + 7); // 3.5mm abaixo do email
 
-        // C. Adiciona o conteúdo principal do diagnóstico (o que está no #final-resultado)
+        // Adiciona o conteúdo principal do diagnóstico (o que está no #final-resultado)
         
         if (finalResultEl) {
             // Calcula a posição Y onde o conteúdo renderizado deve começar NA MESMA PÁGINA
@@ -1327,7 +1304,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             const pageHeight = doc.internal.pageSize.height; // Altura total da página A4
             const pdfContentMarginX = 8; // Margem horizontal para o conteúdo do PDF
             
-            // ALTERAÇÃO 2025-09-26: garantir que #final-resultado esteja visível para a captura
+            // garantir que #final-resultado esteja visível para a captura
             let resetVisibility = null;
             try {
                 const styleBefore = finalResultEl.getAttribute('style') || '';
@@ -1346,7 +1323,6 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 }
             } catch(e) { console.warn('checagem de visibilidade falhou:', e); }
 
-            // antes do html2canvas(...)
             try { await waitForLogo(3000); } catch(e){}
             
             // Forçar reflow leve
@@ -1380,7 +1356,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 
                 if (contentImgHeight > remainingPageHeight) {
                     console.warn('Atenção: O conteúdo renderizado do diagnóstico ainda é muito grande e excederá uma única página, mesmo com as otimizações.');
-                    // Se isso acontecer, você precisará otimizar mais o CSS para o PDF ou aceitar múltiplas páginas.
+                    // Se isso acontecer, precisará otimizar mais o CSS para o PDF ou aceitar múltiplas páginas.
                 }
 
                 doc.addImage(imgData, 'JPEG', 15, contentStartY_mm, contentImgWidth, contentImgHeight); // Adiciona na mesma página
@@ -1389,7 +1365,6 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 console.error('Erro no html2canvas durante a renderização do conteúdo principal:', error);
                 doc.text('Erro: Falha ao renderizar conteúdo do diagnóstico no PDF.', 15, contentStartY_mm + 10);
             });
-
 
             // restaura estilo original caso tenhamos alterado
             try { if (resetVisibility !== null) finalResultEl.setAttribute('style', resetVisibility); } catch(e){}
@@ -1400,7 +1375,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             doc.text('Erro: Conteúdo principal do diagnóstico não encontrado para geração do PDF.', 15, textStartY + 30);
         }
 
-        // 3. Salva o PDF no navegador do usuário
+        // Salva o PDF no navegador do usuário
         doc.save(`Diagnostico_Estilo_${dateDDMMAA}.pdf`); 
 
         console.log("PDF gerado e dados enviados para a planilha com sucesso!"); // Substituído alert() por console.log() para operação silenciosa
@@ -1417,15 +1392,13 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         const today = new Date();
         const dateDDMMAA = getFormattedDateDDMMAA(today); // <-- Nova linha para obter a data formatada
 
-        // opções html2pdf/html2canvas
-
         // --- Ajuste dinâmico de scale para html2canvas (reduce em MOBILE)
         const __ap_is_mobile = /Mobi|Android/i.test(navigator.userAgent || '') || (window.innerWidth && window.innerWidth < 700);
         const __ap_dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
         const __ap_default_scale = 3;
         const __ap_scale = __ap_is_mobile ? Math.max(1, Math.round((__ap_default_scale * 10 / __ap_dpr)) / 10) : __ap_default_scale;
 
-        // ---- INÍCIO: substitui aqui toda a definição de opt / html2canvas.onclone / chamada html2pdf ----
+        // substituição de toda a definição de opt / html2canvas.onclone / chamada html2pdf ----
         (function generatePdfWithMobileFix(element) {
             // elemento de origem (ajusta se o teu código usa outro nome)
             const srcEl = element || document.querySelector('.page-content-wrapper') || document.body;
@@ -1533,7 +1506,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                 const prev = document.getElementById('ap-pdf-generating');
                 if (prev) prev.remove();
 
-                // gera PDF — se o teu código usa outra API, substitui esta linha pela tua chamada
+                // gera PDF — se o código usar outra API, substituir esta linha pela chamada
                 window.html2pdf().set(opt).from(srcEl).save().then(() => {
                 console.info('AP_PDF: html2pdf promise resolved');
                 }).catch(e => {
@@ -1544,10 +1517,8 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             }
 
         })();
-        // ---- FIM bloco substituição ----
 
-
-        // --- AP: helpers para inserir/retirar metadata no elemento original DURANTE a geração ---
+        // helpers para inserir/retirar metadata no elemento original DURANTE a geração ---
         function _apEscapeHtml(str){
             return (str||'').toString().replace(/[&<>"']/g, function(m){
                 return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
@@ -1617,7 +1588,6 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             } catch(e) { console.warn('attachMetadataToOriginal erro:', e); return null; }
         }
 
-
         function detachMetadataFromOriginal(elem, prevPos){
             try {
                 if (!elem) return;
@@ -1632,23 +1602,20 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         // tenta o método moderno outputPdf('blob')
         try {
             if (window.html2pdf && typeof window.html2pdf === 'function' && typeof window.html2pdf().set === 'function' && typeof window.html2pdf().from === 'function') {
-            // const blob = await window.html2pdf().set(opt).from(element).outputPdf('blob');
 
-            // inserir metadata no original antes de chamar html2pdf, para garantir mapeamento clone <- original
-            let __ap_prev_pos = null;
-            try {
-                __ap_prev_pos = attachMetadataToOriginal(element);
-            } catch(e){ __ap_prev_pos = null; }
+                // inserir metadata no original antes de chamar html2pdf, para garantir mapeamento clone <- original
+                let __ap_prev_pos = null;
+                try {
+                    __ap_prev_pos = attachMetadataToOriginal(element);
+                } catch(e){ __ap_prev_pos = null; }
 
-            try {
-                const blob = await window.html2pdf().set(opt).from(element).outputPdf('blob');
+                try {
+                    const blob = await window.html2pdf().set(opt).from(element).outputPdf('blob');
+                    return blob;
+                } finally {
+                    try { detachMetadataFromOriginal(element, __ap_prev_pos); } catch(e){ /* ignore */ }
+                }
                 return blob;
-            } finally {
-                try { detachMetadataFromOriginal(element, __ap_prev_pos); } catch(e){ /* ignore */ }
-            }
-
-
-            return blob;
             }
         } catch (err) {
             console.warn('outputPdf falhou, tentando fallback...', err);
@@ -1677,32 +1644,17 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
     }
 
     function downloadPdfBlob(pdfBlob, filename = 'resultado-armario-perfeito.pdf') {
-    const url = URL.createObjectURL(pdfBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2500);
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2500);
     }
 
-
-    /* --- Patch mínimo (append) para preservar fonts/text-transform antes do html2canvas
-   Cole ESTE bloco EXATAMENTE no final do seu script.js (apenas append). 
-   Ele não remove nem substitui handlers existentes: só "envolve" html2canvas.
 /* --- Patch mínimo (append) para preservar fonts/text-transform antes do html2canvas
-   Cole ESTE bloco EXATAMENTE no final do seu script.js (apenas append). 
-   Ele não remove nem substitui handlers existentes: só "envolve" html2canvas.
-*/
-
-/* --- Patch mínimo (append) para preservar fonts/text-transform antes do html2canvas
-   Cole ESTE bloco EXATAMENTE no final do seu script.js (apenas append). 
-   Ele não remove nem substitui handlers existentes: só "envolve" html2canvas.
-*/
-
-/* --- Patch mínimo (append) para preservar fonts/text-transform antes do html2canvas
-   Cole ESTE bloco EXATAMENTE no final do seu script.js (apenas append). 
    Ele não remove nem substitui handlers existentes: só "envolve" html2canvas.
 */
 (function(){
@@ -1746,9 +1698,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                   'letter-spacing','word-spacing','text-transform','text-decoration',
                   'color','background-color','text-align','white-space','direction',
                   'text-rendering','-webkit-font-smoothing'
-                ];
-
-                
+                ];                
                     try {
                         let v = cs.getPropertyValue(p) || cs[p.replace(/-([a-z])/g, (m,g)=>g.toUpperCase())];
                         if (!v) return;
@@ -1775,10 +1725,6 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
 
                         tgt.style.setProperty(p, v, 'important');
                     } catch(e){}
-                    
-
-
-
               } catch(e){}
 
                 // Forçar font-size mínimo para elementos de texto
@@ -1803,18 +1749,16 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
               }
             }
 
-            // === FORÇA: copia styles críticos do original para o clone e remove gradients incompatíveis === 15:40
+            // === FORÇA: copia styles críticos do original para o clone e remove gradients incompatíveis 
             try {
               // detecta raiz original e raiz do clone
               const srcRoot = element; // Use 'element' (parâmetro passado para html2canvas), pois 'finalResultEl' é local e não disponível aqui
               const cloneRoot = clonedDoc.getElementById(srcRoot.id) ||
                                 clonedDoc.querySelector(srcRoot.className?.split(' ')[0] ? '.'+srcRoot.className.split(' ')[0] : null) ||
                                 clonedDoc.body;
-
               const srcNodes = srcRoot.querySelectorAll('*');
               const tgtNodes = cloneRoot ? cloneRoot.querySelectorAll('*') : clonedDoc.querySelectorAll('*');
               const len = Math.min(srcNodes.length, tgtNodes.length);
-
               const props = ['font-family','font-weight','font-style','font-size','line-height','letter-spacing','word-spacing','text-transform','color','background-color','text-align'];
 
               for (let i = 0; i < len; i++) {
@@ -1850,7 +1794,6 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
                             tgt.style.setProperty(p, v, 'important');
                         } catch(e){}
                         });
-
 
                   // se houver background-image com gradiente (possível uso de color() dentro), remova para evitar erro de parse
                   const bg = cs.getPropertyValue('background-image');
@@ -1954,7 +1897,7 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
             if (document.fonts && document.fonts.ready) {
               // timeout extra curto para evitar bloqueio indefinido (fallback 3s)
               const fontsPromise = document.fonts.ready;
-              await Promise.race([fontsPromise, new Promise(r=>setTimeout(r, 30000))]); // ALTERADO PARA AUMENTAR TIMEOUT (de 8000 para 12000)
+              await Promise.race([fontsPromise, new Promise(r=>setTimeout(r, 30000))]); // ALTERADO PARA AUMENTAR TIMEOUT (de 8000 para 12000 e depois 30000)
             }
             // também aguardamos imagens do element (curto) — evita capturar placeholders
             try {
