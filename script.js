@@ -1264,17 +1264,40 @@ function exampleGeneratePdfAfterDelay(delay = 3000) {
         console.log("Dados para enviar para a planilha via GET:", { nome, email, primario: estiloPrimario, secundario: estiloSecundario, terciario: estiloTerciario, data: dataFormatadaParaSheet });
         console.log("URL final para a planilha (GET):", gasUrl);
 
-        try {
-            const img = new Image();
-            img.src = gasUrl;
-            img.onload = () => console.log('Envio para planilha (GET) concluído com sucesso.');
-            img.onerror = (err) => {
-                console.error('Erro ao enviar para planilha (GET):', err);
+        // Versão alterada em 03/10 pra corrigir o envio dos dados pra planilha também a partir do mobile
+        // try {
+        //    const img = new Image();
+        //    img.src = gasUrl;
+        //    img.onload = () => console.log('Envio para planilha (GET) concluído com sucesso.');
+        //    img.onerror = (err) => {
+        //        console.error('Erro ao enviar para planilha (GET):', err);
                 // Substituído alert() por console.error() para operação silenciosa
-            };
-        } catch (error) {
-            console.error('Erro ao iniciar envio para a planilha (Image GET):', error);
+        //    };
+        //} catch (error) {
+        //    console.error('Erro ao iniciar envio para a planilha (Image GET):', error);
             // Substituído alert() por console.error() para operação silenciosa
+        //}
+
+        // --- Alteração 03/10: Substituição de new Image() por fetch() com keepalive ---
+        try {
+            // Usando fetch() para uma comunicação mais robusta e controlável
+            // A opção 'keepalive: true' é CRUCIAL para garantir o envio no mobile,
+            // mesmo se a página estiver sendo descarregada.
+            const response = await fetch(gasUrl, {
+                method: 'GET', // O Apps Script ainda espera um método GET
+                mode: 'no-cors', // Necessário para evitar erros CORS com Google Apps Script
+                keepalive: true  // Garante que a requisição continue mesmo se o usuário sair da página
+            });
+            // Para requisições com 'mode: "no-cors"', 'response.ok' será false e 'response.status' será 0
+            // se a resposta não puder ser completamente lida devido à política CORS.
+            // O sucesso é inferido se a Promise não for rejeitada.
+            if (response.status === 0 || response.type === 'opaque') {
+                console.log('Envio para planilha (fetch GET) iniciado com sucesso (resposta opaca).');
+            } else {
+                console.warn('Envio para planilha (fetch GET) concluído com status:', response.status);
+            }
+        } catch (error) {
+            console.error('Erro irrecuperável ao enviar para a planilha (fetch GET):', error);
         }
 
         // Geração do PDF usando jsPDF e html2canvas
